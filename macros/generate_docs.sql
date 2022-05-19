@@ -2,7 +2,7 @@
 
 {% set package = ""~ package ~"" %}
 
-{% set zsh_command = "source dbt_packages/fivetran_utils/generate_docs.sh '../dbt_"""~ package ~""""+"'" %}
+{% set zsh_command = "source dbt_packages/dbt_package_automations/generate_docs.sh '../dbt_"""~ package ~""""+"'" %}
 
 {{ log (zsh_command, info=True) }}
 
