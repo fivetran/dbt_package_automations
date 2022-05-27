@@ -104,7 +104,7 @@ dbt run-operation generate_docs --args '{package: apple_search_ads_source}'
 ```
 **CLI Output:**
 ```bash
-source dbt_packages/fivetran_utils/generate_docs.sh '../dbt_apple_search_ads_source'
+source dbt_packages/dbt_package_automations/generate_docs.sh '../dbt_apple_search_ads_source'
 ```
 **Args:**
 * `package` (required): Name of the package; include whether package is source or not
