@@ -1,6 +1,9 @@
 #!/bin/bash
 mkdir -p $1/models/tmp 
-echo "select * from {{ var('$5') }}" > $1/models/tmp/$2__$5_tmp.sql 
+
+echo "select * 
+from {{ var('$5') }}" > $1/models/tmp/$2__$5_tmp.sql 
+
 echo "" > $1/models/$2__$5.sql
 
 echo "with base as (
