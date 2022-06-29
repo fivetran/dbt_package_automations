@@ -19,6 +19,6 @@
 
 {% endfor %}
 
-{{ log(columns_array|join(' && \n') + ' && \n' + models_array|join(' && \n'), info=True) }}
+{{ log(columns_array|join(' && ') + ' && ' + models_array|join(' && '), info=True) }}
 
 {% endmacro %} 
