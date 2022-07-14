@@ -29,7 +29,7 @@ final as (
     select " >> $1/models/$2__$5.sql
     
 
-dbt run-operation fivetran_utils.get_column_names_only --args '{"table_name": "'$5'", "schema_name": "'$4'", "database_name":"'$3'"}' | tail -n +2 >> $1/models/$2__$5.sql
+dbt run-operation dbt_package_automations.get_column_names_only --args '{"table_name": "'$5'", "schema_name": "'$4'", "database_name":"'$3'"}' | tail -n +2 >> $1/models/$2__$5.sql
     
     
 echo "    from fields
