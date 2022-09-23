@@ -20,7 +20,7 @@ This package is a combination of macros, bash scripts, and python scripts that a
 
 # 🎯 How do I use the dbt package?
 ## Step 1: Installing the Package
-Include the following fivetran_utils package version in your `packages.yml`
+Include the following dbt_package_automations package version in your `packages.yml`
 > Check [dbt Hub](https://hub.getdbt.com/) for the latest installation instructions, or [read the dbt docs](https://docs.getdbt.com/docs/package-management) for more information on installing packages.
 ```yaml
 packages:
@@ -54,7 +54,7 @@ The macro should be run using dbt's `run-operation` functionality, as used below
 
 **Usage:**
 ```
-dbt run-operation fivetran_utils.generate_columns_macro --args '{"table_name": "promoted_tweet_report", "schema_name": "twitter_ads", "database_name": "dbt-package-testing"}'
+dbt run-operation dbt_package_automations.generate_columns_macro --args '{"table_name": "promoted_tweet_report", "schema_name": "twitter_ads", "database_name": "dbt-package-testing"}'
 ```
 **Output:**
 ```sql
@@ -168,10 +168,10 @@ dbt run-operation staging_models_automation --args '{package: asana, source_sche
 ```
 **CLI Output:**
 ```bash
-source dbt_packages/fivetran_utils/generate_columns.sh '../dbt_asana_source' stg_asana dbt-package-testing asana_2 user && 
-source dbt_packages/fivetran_utils/generate_columns.sh '../dbt_asana_source' stg_asana dbt-package-testing asana_2 tag &&
-source dbt_packages/fivetran_utils/generate_models.sh '../dbt_asana_source' stg_asana dbt-package-testing asana_2 user && 
-source dbt_packages/fivetran_utils/generate_models.sh '../dbt_asana_source' stg_asana dbt-package-testing asana_2 tag &&
+source dbt_packages/dbt_package_automations/generate_columns.sh '../dbt_asana_source' stg_asana dbt-package-testing asana_2 user && 
+source dbt_packages/dbt_package_automations/generate_columns.sh '../dbt_asana_source' stg_asana dbt-package-testing asana_2 tag &&
+source dbt_packages/dbt_package_automations/generate_models.sh '../dbt_asana_source' stg_asana dbt-package-testing asana_2 user && 
+source dbt_packages/dbt_package_automations/generate_models.sh '../dbt_asana_source' stg_asana dbt-package-testing asana_2 tag &&
 ```
 **Args:**
 * `package`         (required): Name of the package for which you are creating staging models/macros.
@@ -189,12 +189,12 @@ This bash file can be used to setup or update packages to use the `fill_staging_
 
 The usage is as follows, assuming you are executing via a `zsh` terminal and in a dbt project directory that has already imported this repo as a dependency:
 ```bash
-source dbt_packages/fivetran_utils/generate_columns.sh "path/to/directory" file_prefix database_name schema_name table_name
+source dbt_packages/dbt_package_automations/generate_columns.sh "path/to/directory" file_prefix database_name schema_name table_name
 ```
 
 As an example, assuming we are in a dbt project in an adjacent folder to `dbt_apple_search_ads_source`:
 ```bash
-source dbt_packages/fivetran_utils/generate_columns.sh '../dbt_apple_search_ads_source' stg_apple_search_ads dbt-package-testing apple_search_ads campaign_history
+source dbt_packages/dbt_package_automations/generate_columns.sh '../dbt_apple_search_ads_source' stg_apple_search_ads dbt-package-testing apple_search_ads campaign_history
 ```
 
 In that example, it will:
@@ -216,7 +216,7 @@ This bash file can be used to create or replace package documentation (`<project
 
 **Usage:**
 ```bash
-source dbt_packages/fivetran_utils/generate_docs.sh '../dbt_apple_search_ads_source'
+source dbt_packages/dbt_package_automations/generate_docs.sh '../dbt_apple_search_ads_source'
 ```
 The bash script does the following:
 - seeds, runs and creates documentation for integration tests models
@@ -231,12 +231,12 @@ This bash file can be used to setup or update packages to use the `generate_mode
 * Creates or updates a `.sql` file in the `models` directory and fills it with the filled out version of the `fill_staging_columns` macro as shown above. You can then write whatever SQL you want around the macro to finishing off the staging file.
 
 ```bash
-source dbt_packages/fivetran_utils/generate_models.sh "path/to/directory" file_prefix database_name schema_name table_name
+source dbt_packages/dbt_package_automations/generate_models.sh "path/to/directory" file_prefix database_name schema_name table_name
 ```
 
 As an example, assuming we are in a dbt project in an adjacent folder to `dbt_apple_search_ads_source`:
 ```bash
-source dbt_packages/fivetran_utils/generate_models.sh '../dbt_apple_search_ads_source' stg_apple_search_ads dbt-package-testing apple_search_ads campaign_history
+source dbt_packages/dbt_package_automations/generate_models.sh '../dbt_apple_search_ads_source' stg_apple_search_ads dbt-package-testing apple_search_ads campaign_history
 ```
 
 With the above example, the script will:
