@@ -1,4 +1,4 @@
-{% macro default_get_column_names_only(table_name, schema_name, database_name=target.database) %}
+{% macro default__get_column_names_only(table_name, schema_name, database_name=target.database) %}
 
 {% set query %}
 
