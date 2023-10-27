@@ -1,0 +1,78 @@
+name: 'auto release'
+on:
+  workflow_call:
+
+jobs:
+  update:
+    if: github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    name: Create a release
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Extract new version from changelog
+        id: new_version
+        run: |
+          # Extract the version number from the changelog file
+          VERSION=$(grep -oP 'v[0-9]+.*' CHANGELOG.md | head -1 | tr -d '[:space:]')
+          echo "Extracted version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Get current version from Github
+        id: current_version
+        run: |
+          # Get the latest published release using the GitHub REST API
+          CURRENT_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GH_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/releases/latest" | jq -r '.tag_name')
+          echo "Latest published release tag: $CURRENT_VERSION"
+          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Extract release notes from changelog
+        id: extract_notes
+        run: |
+          # Use awk to extract the line numbers of the start and end headings
+          START_LINE=$(awk "/^# .*${{ steps.new_version.outputs.version }}/{print NR+1; exit}" CHANGELOG.md)
+          END_LINE=$(awk "/^# .*${{ steps.current_version.outputs.version }}/{print NR-1; exit}" CHANGELOG.md)
+          # Extract the release notes between the line numbers
+          awk -v start_line="$START_LINE" -v end_line="$END_LINE" 'NR >= start_line && NR <= end_line' CHANGELOG.md > extracted_notes.txt
+
+      - name: Format release notes for description
+        id: format_notes
+        run: |
+          # Replace newline characters with appropriate line breaks and remove link from contributors
+          FORMATTED_NOTES=$(sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g' extracted_notes.txt | sed 's/\[@\([[:alnum:]_-]*\)\](\([^)]*\))/@\1/g')
+          echo "Formatted release notes: $FORMATTED_NOTES"
+          echo "formatted_notes=$FORMATTED_NOTES" >> $GITHUB_OUTPUT
+
+      - name: Get Repository Name
+        id: repo_name
+        run: |
+          # Use basename to get the repository name without the owner
+          REPO_NAME=$(basename "${{ github.repository }}")
+          echo "Repository Name: $REPO_NAME"
+          echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
+
+      - name: Create the release
+        id: create_release
+        env:
+          version: ${{ steps.new_version.outputs.version }}
+          title: ${{ steps.new_version.outputs.version }} ${{ steps.repo_name.outputs.repo_name }}
+          description: ${{ steps.format_notes.outputs.formatted_notes }}
+          branch: 'main'
+          draft: 'true'
+          prerelease: 'false'
+          repo: ${{ github.repository }}
+          token: ${{ secrets.GH_TOKEN }}
+          compare_url: "https://github.com/${{ github.repository }}/compare/${{ steps.current_version.outputs.version }}...${{ steps.new_version.outputs.version }}"
+        run: |
+          # Concatenate the link to the full changelog with the release description
+          description="${description}\n\n**Full Changelog**: ${compare_url}"
+
+          # Create the release draft using the GitHub API
+          RESPONSE=$(curl -X POST \
+            -H "Authorization: token $token" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/$repo/releases" \
+            -d "{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"body\": \"$description\",\"draft\": $draft,\"prerelease\": $prerelease}")
+
+          # Print the response for verification
+          echo "Response: $RESPONSE"
