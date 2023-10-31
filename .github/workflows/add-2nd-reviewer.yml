@@ -1,14 +1,12 @@
 name: Auto-Assign Second Reviewer
 on:
-  pull_request_review:
-    types: [submitted]
+  workflow_call:
 
 permissions:
   pull-requests: write
 
 jobs:
   auto_assign_reviewer:
-    if: github.event.review.state == 'approved'
     runs-on: ubuntu-latest
     
     steps:
@@ -16,7 +14,7 @@ jobs:
         id: check_needs_second_reviewer
         run: |
           # Set the 2nd Reviewer
-          SECOND_REVIEWER="fivetran-joemarkiewicz"
+          SECOND_REVIEWER="fivetran-data-model-bot"
           echo "second_reviewer=$SECOND_REVIEWER" >> $GITHUB_OUTPUT
 
           # Get the PR Number
@@ -58,7 +56,6 @@ jobs:
         run: |
           PR_NUMBER=${{ steps.check_needs_second_reviewer.outputs.pr_number }}
           SECOND_REVIEWER=${{ steps.check_needs_second_reviewer.outputs.second_reviewer }}
-          TOKEN=
           RESPONSE=$(curl -L \
             -X POST \
             -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
