@@ -1,0 +1,70 @@
+name: Auto-Assign Second Reviewer
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  auto_assign_reviewer:
+    if: github.event.review.state == 'approved'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check if PR needs second reviewer
+        id: check_needs_second_reviewer
+        run: |
+          # Set the 2nd Reviewer
+          SECOND_REVIEWER="fivetran-joemarkiewicz"
+          echo "second_reviewer=$SECOND_REVIEWER" >> $GITHUB_OUTPUT
+
+          # Get the PR Number
+          PR_NUMBER=$(jq -r ".pull_request.number" "$GITHUB_EVENT_PATH")
+          echo "PR Number: $PR_NUMBER"
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+          # Get list of current reviewers 
+          # (need to update filter on line 29 to teams when switch 2nd reviewer. might be teams.slugs but ??)
+          CURRENT_REVIEWERS=$(curl -s -H \
+            -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews" | jq -j '.[].user.login')
+            # for later - "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews" | jq -j '.[].team.slug')
+          echo "$CURRENT_REVIEWERS"
+
+          # Determine if group already assigned as reviewer
+          if [[ "$CURRENT_REVIEWERS" == *"$SECOND_REVIEWER"* ]]; then
+            NEEDS_SECOND_REVIEWER="false"
+
+          else
+            NEEDS_SECOND_REVIEWER="true"
+
+            RESPONSE=$(curl -i -L \
+              -X POST \
+              -H "Authorization: Bearer ${{ secrets.GH_TOKEN3 }}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/requested_reviewers" \
+              -d '{"reviewers":["$SECOND_REVIEWER"]}'
+              )
+              echo "$RESPONSE"
+
+          fi
+          echo "Add 2nd Reviewer: $NEEDS_SECOND_REVIEWER"
+          echo "needs_second_reviewer=$NEEDS_SECOND_REVIEWER" >> $GITHUB_OUTPUT
+
+      - name: Assign Second Reviewer
+        if: steps.check_needs_second_reviewer.outputs.needs_second_reviewer == 'true'
+        run: |
+          PR_NUMBER=${{ steps.check_needs_second_reviewer.outputs.pr_number }}
+          SECOND_REVIEWER=${{ steps.check_needs_second_reviewer.outputs.second_reviewer }}
+          TOKEN=
+          RESPONSE=$(curl -L \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/requested_reviewers \
+            -d '{\"reviewers\":[\"$SECOND_REVIEWER\"]}'
+            )
+            # for later - ,"team_reviewers":["DBT"]
+          echo "$RESPONSE"
