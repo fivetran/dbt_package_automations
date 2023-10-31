@@ -34,6 +34,8 @@ jobs:
           # Determine if group already assigned as reviewer
           if [[ "$CURRENT_REVIEWERS" == *"$SECOND_REVIEWER"* ]]; then
             NEEDS_SECOND_REVIEWER="false"
+            echo "2nd Reviewer already assigned."
+            exit 1  # This will cause the job to fail and skip subsequent steps.
 
           else
             NEEDS_SECOND_REVIEWER="true"
