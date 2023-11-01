@@ -26,8 +26,8 @@ jobs:
           CURRENT_REVIEWERS=$(curl -s -H \
             -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
-            # "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews" | jq -j '.[].user.login')
             "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews" | jq -j '.[].team.slug')
+            # commented out in case we need it again "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews" | jq -j '.[].user.login')
           echo "$CURRENT_REVIEWERS"
 
           # Determine if group already assigned as reviewer
@@ -43,18 +43,18 @@ jobs:
           echo "Add 2nd Reviewer: $NEEDS_SECOND_REVIEWER"
           echo "needs_second_reviewer=$NEEDS_SECOND_REVIEWER" >> $GITHUB_OUTPUT
 
-      # - name: Assign Second Reviewer
-      #   if: steps.check_needs_second_reviewer.outputs.needs_second_reviewer == 'true'
-      #   run: |
-      #     PR_NUMBER=${{ steps.check_needs_second_reviewer.outputs.pr_number }}
-      #     SECOND_REVIEWER=${{ steps.check_needs_second_reviewer.outputs.second_reviewer }}
-      #     echo "2nd Reviewer = $SECOND_REVIEWER"
-      #     RESPONSE=$(curl -L \
-      #       -X POST \
-      #       -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
-      #       -H "Accept: application/vnd.github+json" \
-      #       https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/requested_reviewers \
-      #       # -d "{\"reviewers\":[\"$SECOND_REVIEWER\"]}"
-      #       -d "{\"team_reviewers\":[\"$SECOND_REVIEWER\"]}"
-      #       )
-      #     echo "$RESPONSE"
+      - name: Assign Second Reviewer
+        if: steps.check_needs_second_reviewer.outputs.needs_second_reviewer == 'true'
+        run: |
+          PR_NUMBER=${{ steps.check_needs_second_reviewer.outputs.pr_number }}
+          SECOND_REVIEWER=${{ steps.check_needs_second_reviewer.outputs.second_reviewer }}
+          echo "2nd Reviewer = $SECOND_REVIEWER"
+          RESPONSE=$(curl -L \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/requested_reviewers \
+            -d "{\"team_reviewers\":[\"$SECOND_REVIEWER\"]}"
+            )
+            # commented out in case we need to put back -d "{\"reviewers\":[\"$SECOND_REVIEWER\"]}"
+          echo "$RESPONSE"
