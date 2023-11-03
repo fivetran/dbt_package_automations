@@ -23,7 +23,7 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/requested_reviewers" | jq '.users | length')
-          echo "$REVIEWERS_COUNT"
+          echo "No. of Requested Reviewers: $REVIEWERS_COUNT"
 
           # Determine if two reviewers already exist
           if [[ "$REVIEWERS_COUNT" -gt 1 ]]; then
