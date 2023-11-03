@@ -13,25 +13,20 @@ jobs:
       - name: Check if PR needs second reviewer
         id: check_needs_second_reviewer
         run: |
-          # Set the 2nd Reviewer
-          SECOND_REVIEWER="DBT"
-          echo "second_reviewer=$SECOND_REVIEWER" >> $GITHUB_OUTPUT
-
           # Get the PR Number
           PR_NUMBER=$(jq -r ".pull_request.number" "$GITHUB_EVENT_PATH")
           echo "PR Number: $PR_NUMBER"
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
           # Get list of current reviewers 
-          CURRENT_REVIEWERS=$(curl -s -H \
+          REVIEWERS_COUNT=$(curl -s -H \
             -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews" | jq -j '.[].team.slug')
-            # commented out in case we need it again "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/reviews" | jq -j '.[].user.login')
-          echo "$CURRENT_REVIEWERS"
+            "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/requested_reviewers" | jq '.users | length'
+          echo "$REVIEWERS_COUNT"
 
-          # Determine if group already assigned as reviewer
-          if [[ "$CURRENT_REVIEWERS" == *"$SECOND_REVIEWER"* ]]; then
+          # Determine if two reviewers already exist
+          if [[ "$REVIEWERS_COUNT" > 1 ]]; then
             NEEDS_SECOND_REVIEWER="false"
             echo "2nd Reviewer already assigned."
             exit 1  # This will cause the job to fail and skip subsequent steps.
@@ -40,15 +35,14 @@ jobs:
             NEEDS_SECOND_REVIEWER="true"
           fi
 
-          echo "Add 2nd Reviewer: $NEEDS_SECOND_REVIEWER"
+          echo "Adding 2nd Reviewer: $NEEDS_SECOND_REVIEWER"
           echo "needs_second_reviewer=$NEEDS_SECOND_REVIEWER" >> $GITHUB_OUTPUT
 
       - name: Assign Second Reviewer
         if: steps.check_needs_second_reviewer.outputs.needs_second_reviewer == 'true'
         run: |
           PR_NUMBER=${{ steps.check_needs_second_reviewer.outputs.pr_number }}
-          SECOND_REVIEWER=${{ steps.check_needs_second_reviewer.outputs.second_reviewer }}
-          echo "2nd Reviewer = $SECOND_REVIEWER"
+          SECOND_REVIEWER="dbt"
           RESPONSE=$(curl -L \
             -X POST \
             -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
@@ -56,5 +50,4 @@ jobs:
             https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/requested_reviewers \
             -d "{\"team_reviewers\":[\"$SECOND_REVIEWER\"]}"
             )
-            # commented out in case we need to put back -d "{\"reviewers\":[\"$SECOND_REVIEWER\"]}"
           echo "$RESPONSE"
