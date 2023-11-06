@@ -1,0 +1,53 @@
+name: Auto-Assign Second Reviewer
+on:
+  workflow_call:
+
+permissions:
+  pull-requests: write
+
+jobs:
+  auto_assign_reviewer:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check if PR needs second reviewer
+        id: check_needs_second_reviewer
+        run: |
+          # Get the PR Number
+          PR_NUMBER=$(jq -r ".pull_request.number" "$GITHUB_EVENT_PATH")
+          echo "PR Number: $PR_NUMBER"
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+          # Get list of current reviewers 
+          REVIEWERS_COUNT=$(curl -s -H \
+            -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/requested_reviewers" | jq '.users | length')
+          echo "No. of Requested Reviewers: $REVIEWERS_COUNT"
+
+          # Determine if two reviewers already exist
+          if [[ "$REVIEWERS_COUNT" -gt 1 ]]; then
+            NEEDS_SECOND_REVIEWER="false"
+            echo "2nd Reviewer already assigned."
+            exit 1  # This will cause the job to fail and skip subsequent steps.
+
+          else
+            NEEDS_SECOND_REVIEWER="true"
+          fi
+
+          echo "Adding 2nd Reviewer: $NEEDS_SECOND_REVIEWER"
+          echo "needs_second_reviewer=$NEEDS_SECOND_REVIEWER" >> $GITHUB_OUTPUT
+
+      - name: Assign Second Reviewer
+        if: steps.check_needs_second_reviewer.outputs.needs_second_reviewer == 'true'
+        run: |
+          PR_NUMBER=${{ steps.check_needs_second_reviewer.outputs.pr_number }}
+          SECOND_REVIEWER="dbt"
+          RESPONSE=$(curl -L \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER/requested_reviewers \
+            -d "{\"team_reviewers\":[\"$SECOND_REVIEWER\"]}"
+            )
+          echo "$RESPONSE"
