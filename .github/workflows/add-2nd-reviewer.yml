@@ -44,7 +44,7 @@ jobs:
           # Get the current repository name
           CURRENT_REPO_NAME="${{ github.repository }}"
           
-          # Check if the current repository name contains 'source'
+          # Check if the current repository name contains 'source' to determine name of related repo
           if [[ $CURRENT_REPO_NAME == *source* ]]; then
             # If 'source' is in the name, remove it from the related repository name
             RELATED_REPO=$(echo "$CURRENT_REPO_NAME" | sed 's/_source//')
