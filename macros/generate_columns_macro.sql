@@ -3,7 +3,6 @@
 {% set columns = get_columns_for_macro(table_name, schema_name, database_name) %}
 
 {% set jinja_macro=[] %}
-
 {% do jinja_macro.append('{% macro get_' ~ table_name ~ '_columns() %}') %}
 {% do jinja_macro.append('') %}
 {% do jinja_macro.append('{% set columns = [') %}

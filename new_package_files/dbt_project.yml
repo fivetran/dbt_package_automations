@@ -1,0 +1,16 @@
+config-version: 2
+name: 'package_name_here'
+version: '0.1.0'
+require-dbt-version: [">=1.3.0", "<2.0.0"]
+
+models:
+  package_name_here:
+    +schema: package_name_here
+    +materialized: table
+    intermediate:
+      +materialized: ephemeral
+    staging:
+      +materialized: view
+      +schema: stg_package_name_here
+
+
