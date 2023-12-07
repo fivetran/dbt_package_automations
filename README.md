@@ -47,6 +47,41 @@ See the specific details for each macros within the contents below.
 
 ## Automation Macros
 These macros provide the scripts to automate parts of the model creation.
+
+### staging_models_automation ([source](macros/staging_models_automation.sql))
+This macro is intended to be used as a `run-operation` when generating Fivetran dbt package staging models and all around package framework creation. This macro will receive user input to create the necessary bash commands so they may all be ran at once. The output of this macro within the CLI will then be copied and pasted as a command to generate the staging models/macros.
+
+Additionally, you can rerun this macro as it will create or replace what currently exists in the macro & model folders.
+
+Things to note:
+
+- This macro will only work if you have already included your src.yml file.
+- Please double check your outputs as there may be timestamps & notes that are not relevant to the file.
+
+**Usage:**
+```bash
+dbt run-operation staging_models_automation --args '{package: intercom, display_name: Intercom, source_schema: intercom_schema, source_database: intercom_database, tables: ["admin","company_history"]}'
+```
+**CLI Output:**
+```bash
+source dbt_packages/dbt_package_automations/kick_off_generator.sh  && 
+source dbt_packages/dbt_package_automations/generate_source.sh '../dbt_intercom' intercom intercom_database intercom_schema '['admin', 'company_history']'  && 
+source dbt_packages/dbt_package_automations/generate_columns.sh '../dbt_intercom' intercom intercom_database intercom_schema admin && 
+source dbt_packages/dbt_package_automations/generate_columns.sh '../dbt_intercom' intercom intercom_database intercom_schema company_history && 
+source dbt_packages/dbt_package_automations/generate_models.sh '../dbt_intercom' intercom intercom_database intercom_schema admin && 
+source dbt_packages/dbt_package_automations/generate_models.sh '../dbt_intercom' intercom intercom_database intercom_schema company_history && 
+source dbt_packages/dbt_package_automations/generate_docs_md.sh '../dbt_intercom' intercom intercom_database intercom_schema 'admin","company_history'  && 
+source dbt_packages/dbt_package_automations/generate_files.sh intercom 'Intercom'  && 
+source dbt_packages/dbt_package_automations/edit_dbt_project_yml.sh intercom 'admin,company_history'  && 
+source dbt_packages/dbt_package_automations/edit_integrations_project_yml.sh intercom 'admin,company_history' 
+```
+**Args:**
+* `package`         (required): Name of the package for which you are creating staging models/macros.
+* `display_name`    (required): Display name of the package for which you are creating that will be used mainly in the README generation.
+* `source_schema`   (required): Name of the source_schema from which the bash command will query.
+* `source_database` (required): Name of the source_database from which the bash command will query.
+* `tables`          (required): List of the tables for which you want to create staging models/macros.
+
 ### generate_columns_macro ([source](macros/generate_columns_macro.sql))
 This macro is used to generate the macro used as an argument within the [fill_staging_columns](https://github.com/fivetran/dbt_fivetran_utils#fill_staging_columns-source) macro which will list all the expected columns within a respective table. The macro output will contain `name` and `datatype`; however, you may add an optional argument for `alias` if you wish to rename the column within the macro. 
 
@@ -54,7 +89,7 @@ The macro should be run using dbt's `run-operation` functionality, as used below
 
 **Usage:**
 ```
-dbt run-operation dbt_package_automations.generate_columns_macro --args '{"table_name": "promoted_tweet_report", "schema_name": "twitter_ads", "database_name": "dbt-package-testing"}'
+dbt run-operation dbt_package_automations.generate_columns_macro --args '{"table_name": "promoted_tweet_report", "schema_name": "twitter_ads", "database_name": "intercom_database"}'
 ```
 **Output:**
 ```sql
@@ -152,32 +187,6 @@ This macro returns all column names and datatypes for a specified table within a
 * `database_name` (optional): Name of the database where the above mentioned schema and table reside. By default this will be your target.database.
 
 ----
-### staging_models_automation ([source](macros/staging_models_automation.sql))
-This macro is intended to be used as a `run-operation` when generating Fivetran dbt source package staging models/macros. This macro will receive user input to create the necessary bash commands using ([generate_columns](generate_columns.sh)) and ([generate_models](generate_models.sh)) appended with `&&` so they may all be ran at once. The output of this macro within the CLI will then be copied and pasted as a command to generate the staging models/macros.
-
-Additionally, you can rerun this macro as it will create or replace what currently exists in the macro & model folders.
-
-Things to note:
-
-- This macro will only work if you have already included your src.yml file.
-- Please double check your outputs as there may be timestamps & notes that are not relevant to the file.
-
-**Usage:**
-```bash
-dbt run-operation staging_models_automation --args '{package: asana, source_schema: asana_source, source_database: database-source-name, tables: ["user","tag"]}'
-```
-**CLI Output:**
-```bash
-source dbt_packages/dbt_package_automations/generate_columns.sh '../dbt_asana_source' stg_asana dbt-package-testing asana_2 user && 
-source dbt_packages/dbt_package_automations/generate_columns.sh '../dbt_asana_source' stg_asana dbt-package-testing asana_2 tag &&
-source dbt_packages/dbt_package_automations/generate_models.sh '../dbt_asana_source' stg_asana dbt-package-testing asana_2 user && 
-source dbt_packages/dbt_package_automations/generate_models.sh '../dbt_asana_source' stg_asana dbt-package-testing asana_2 tag &&
-```
-**Args:**
-* `package`         (required): Name of the package for which you are creating staging models/macros.
-* `source_schema`   (required): Name of the source_schema from which the bash command will query.
-* `source_database` (required): Name of the source_database from which the bash command will query.
-* `tables`          (required): List of the tables for which you want to create staging models/macros.
 
 ## Bash Scripts
 ### generate_columns.sh ([source](generate_columns.sh))
@@ -194,7 +203,7 @@ source dbt_packages/dbt_package_automations/generate_columns.sh "path/to/directo
 
 As an example, assuming we are in a dbt project in an adjacent folder to `dbt_apple_search_ads_source`:
 ```bash
-source dbt_packages/dbt_package_automations/generate_columns.sh '../dbt_apple_search_ads_source' stg_apple_search_ads dbt-package-testing apple_search_ads campaign_history
+source dbt_packages/dbt_package_automations/generate_columns.sh '../dbt_apple_search_ads_source' stg_apple_search_ads intercom_database apple_search_ads campaign_history
 ```
 
 In that example, it will:
@@ -236,7 +245,7 @@ source dbt_packages/dbt_package_automations/generate_models.sh "path/to/director
 
 As an example, assuming we are in a dbt project in an adjacent folder to `dbt_apple_search_ads_source`:
 ```bash
-source dbt_packages/dbt_package_automations/generate_models.sh '../dbt_apple_search_ads_source' stg_apple_search_ads dbt-package-testing apple_search_ads campaign_history
+source dbt_packages/dbt_package_automations/generate_models.sh '../dbt_apple_search_ads_source' stg_apple_search_ads intercom_database apple_search_ads campaign_history
 ```
 
 With the above example, the script will:
