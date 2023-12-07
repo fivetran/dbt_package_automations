@@ -3,7 +3,7 @@
 {% set package = ""~ package ~"" %}
 {% set source_schema = ""~ source_schema ~"" %}
 {% set source_database = ""~ source_database ~"" %}
-{% set tables_string = tables | join('","') %}
+{% set tables_string = tables | join("','") %}
 {% set tables_no_string = tables | join(',') %}
 
 {% set starting_message = "source dbt_packages/dbt_package_automations/kick_off_generator.sh """~ display_name ~"""" %}
@@ -11,6 +11,7 @@
 {% set zsh_command_models = "source dbt_packages/dbt_package_automations/generate_models.sh '../dbt_"""~ package ~"""' """~ package ~""" """~ source_database ~""" """~ source_schema ~""" " %}
 {% set zsh_command_source = "source dbt_packages/dbt_package_automations/generate_source.sh '../dbt_"""~ package ~"""' """~ package ~""" """~ source_database ~""" """~ source_schema ~""" '"""~ tables ~"""' " %}
 {% set zsh_command_source_docs = "source dbt_packages/dbt_package_automations/generate_docs_md.sh '../dbt_"""~ package ~"""' """~ package ~""" """~ source_database ~""" """~ source_schema ~""" '"""~ tables_string ~"""' " %}
+{% set zsh_command_staging_yml = "source dbt_packages/dbt_package_automations/generate_staging.sh '../dbt_"""~ package ~"""' """~ package ~""" """~ source_database ~""" """~ source_schema ~""" '"""~ tables ~"""' " %}
 {% set zsh_files_creation = "source dbt_packages/dbt_package_automations/generate_files.sh """~ package ~""" '"""~ display_name ~"""' " %}
 {% set dbt_project_yml_update = "source dbt_packages/dbt_package_automations/edit_dbt_project_yml.sh """~ package ~""" '"""~ tables_no_string ~"""' " %}
 {% set dbt_integration_yml_update = "source dbt_packages/dbt_package_automations/edit_integrations_project_yml.sh """~ package ~""" '"""~ tables_no_string ~"""' " %}
@@ -27,6 +28,6 @@
 
 {% endfor %}
 
-{{ log(starting_message + ' && \n' + zsh_command_source + ' && \n' + columns_array|join(' && \n') + ' && \n' + models_array|join(' && \n') + ' && \n' + zsh_command_source_docs+ ' && \n' + zsh_files_creation+ ' && \n' + dbt_project_yml_update+ ' && \n' + dbt_integration_yml_update, info=True) }}
+{{ log(starting_message + ' && \n' + zsh_command_source + ' && \n' + columns_array|join(' && \n') + ' && \n' + models_array|join(' && \n') + ' && \n' + zsh_command_source_docs + ' && \n' + zsh_command_staging_yml + ' && \n' + zsh_files_creation+ ' && \n' + dbt_project_yml_update+ ' && \n' + dbt_integration_yml_update, info=True) }}
 
 {% endmacro %} 
