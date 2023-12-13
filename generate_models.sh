@@ -27,7 +27,7 @@ fields as (
     select
         {{
             fivetran_utils.fill_staging_columns(
-                source_columns=adapter.get_columns_in_relation(ref('$2__$5_tmp')),
+                source_columns=adapter.get_columns_in_relation(ref('stg_$2__$5_base')),
                 staging_columns=get_$5_columns()
             )
         }}

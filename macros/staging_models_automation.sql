@@ -29,6 +29,6 @@
 
 {% endfor %}
 
-{{ log(starting_message + ' && \n' + zsh_command_source + ' && \n' + columns_array|join(' && \n') + ' && \n' + models_array|join(' && \n') + ' && \n' + zsh_command_source_docs + ' && \n' + zsh_command_staging_yml + ' && \n' + zsh_files_creation + ' && \n' + dbt_project_yml_update + ' && \n' + dbt_integration_yml_update + ' && \n' + ending_message, info=True) }}
+{{ log(starting_message + ' && \n' + zsh_command_source + ' && \n' + columns_array|join(' && \n') + ' && \n' + models_array|join(' && \n') + ' && \n' + zsh_command_source_docs + ' && \n' + zsh_command_staging_yml + ' && \n' + zsh_files_creation + ' && \n' + dbt_project_yml_update + ' && \n' + dbt_integration_yml_update, info=True) }}
 
 {% endmacro %} 

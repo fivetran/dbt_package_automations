@@ -7,10 +7,11 @@
 
     {% if column.name in ('id','name') %}
     {% do model_yaml.append('      - name: ' ~ model ~ '_' ~ column.name) %}
-    {% do model_yaml.append('        description: "{{ doc("' ~ model ~ '_' ~ column.name ~ '") }}"') %}
+    {% do model_yaml.append("        description: '" ~ '{{ doc("' ~ model ~ '_' ~ column.name ~ '") }}' ~ "'" ) %}
+
     {% else %}
     {% do model_yaml.append('      - name: ' ~ column.name ~ '') %}
-    {% do model_yaml.append('        description: "{{ doc("' ~ column.name ~ '") }}"') %}
+    {% do model_yaml.append("        description: '" ~ '{{ doc("' ~ column.name ~ '") }}' ~ "'" ) %}
     {% endif %}
     
     {% do model_yaml.append('') %}
@@ -36,7 +37,7 @@
     {% else %}
         {% for model in model_names %}
             {% do model_yaml.append('  - name: stg_' ~ package_name ~ '__' ~ model) %}
-            {% do model_yaml.append('    description: "{{ doc("stg_' ~ package_name ~ '__' ~ model ~ '") }}"') %}
+            {% do model_yaml.append("    description: '" ~ '{{ doc("stg_' ~ package_name ~ '__' ~ model ~ '") }}' ~ "'") %}
             {% do model_yaml.append('    columns:') %}
 
             {# {% set relation=source(package_name,model) %}

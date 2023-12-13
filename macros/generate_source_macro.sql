@@ -23,13 +23,15 @@
 {% do sources_yaml.append('sources:') %}
 {% do sources_yaml.append('  - name: ' ~ package_name | lower) %}
 
-{% if database_name != target.database or include_database %}
-{% do sources_yaml.append('    database: "{% if target.type not in ("spark") %}{{ var("' ~ package_name ~ '_database", target.database) }}{% endif %}"' | lower) %}
-{% endif %}
+{# {% if database_name != target.database or include_database %} #}
+{# {% do sources_yaml.append('    database: "{% if target.type not in ("spark") %}{{ var("' ~ package_name ~ '_database", target.database) }}{% endif %}"' | lower) %} #}
+{% do sources_yaml.append("    database: '" ~ '{% if target.type not in ("spark") %}{{ var("' ~ package_name ~ '_database", target.database) }}{% endif %}' | lower ~ "'" ) %}
+{# {% endif %} #}
 
-{% if schema_name != name or include_schema %}
-{% do sources_yaml.append('    schema: "{{ var("' ~ package_name ~ '_schema", "' ~ package_name ~ '")}}"' | lower) %}
-{% endif %}
+{# {% if schema_name != name or include_schema %} #}
+{# {% do sources_yaml.append('    schema: "{{ var("' ~ package_name ~ '_schema", "' ~ package_name ~ '")}}"' | lower) %} #}
+{% do sources_yaml.append("    schema: '" ~ '{{ var("' ~ package_name ~ '_schema", "' ~ package_name ~ '") }}' | lower ~ "'" ) %}
+{# {% endif %} #}
 
 {% do sources_yaml.append('    tables:') %}
 
@@ -41,9 +43,12 @@
 
 {% for table in tables %}
     {% do sources_yaml.append('      - name: ' ~ table | lower ) %}
-    {% do sources_yaml.append('        identifier: "{{ var("' ~ package_name ~ '_' ~ table ~ '_identifier", "' ~ table ~ '")}}"' ) %}
+    {# {% do sources_yaml.append('        identifier: "{{ var("' ~ package_name ~ '_' ~ table ~ '_identifier", "' ~ table ~ '")}}"' ) %} #}
+    {% do sources_yaml.append("        identifier: '" ~ '{{ var("' ~ package_name ~ '_' ~ table ~ '_identifier", "' ~ table ~ '") }}' ~ "'" ) %}
+
     {% if include_descriptions %}
-        {% do sources_yaml.append('        description: "{{ doc("' ~ table ~ '") }}"' ) %}
+        {# {% do sources_yaml.append('        description: "{{ doc("' ~ table ~ '") }}"' ) %} #}
+        {% do sources_yaml.append("        description: '" ~ '{{ doc("' ~ table ~ '") }}' ~ "'" ) %}
     {% endif %}
     {% if generate_columns %}
     {% do sources_yaml.append('        columns:') %}
@@ -62,7 +67,9 @@
                 {% do sources_yaml.append('            data_type: ' ~ codegen.data_type_format_source(column)) %}
             {% endif %}
             {% if include_descriptions %}
-                {% do sources_yaml.append('            description: "{{ doc("' ~ column.name | lower ~ '") }}"' ) %}
+                {# {% do sources_yaml.append('            description: "{{ doc("' ~ column.name | lower ~ '") }}"' ) %} #}
+                {% do sources_yaml.append("            description: '" ~ '{{ doc("' ~ column.name | lower ~ '") }}' ~ "'" ) %}
+
             {% endif %}
         {% endfor %}
             {% do sources_yaml.append('') %}
