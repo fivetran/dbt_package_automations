@@ -48,8 +48,11 @@ jobs:
         run: |
           # Replace newline characters with appropriate line breaks and remove link from contributors
           FORMATTED_NOTES=$(sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g' extracted_notes.txt | sed 's/\[@\([[:alnum:]_-]*\)\](\([^)]*\))/@\1/g')
+          # Escape double quotes in FORMATTED_NOTES
+          FORMATTED_NOTES="${FORMATTED_NOTES//\"/\\\"}"
           echo "Formatted release notes: $FORMATTED_NOTES"
           echo "formatted_notes=$FORMATTED_NOTES" >> $GITHUB_OUTPUT
+
 
       - name: Get Repository Name
         id: repo_name
