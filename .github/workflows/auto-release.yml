@@ -48,6 +48,8 @@ jobs:
         run: |
           # Replace newline characters with appropriate line breaks and remove link from contributors
           FORMATTED_NOTES=$(sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g' extracted_notes.txt | sed 's/\[@\([[:alnum:]_-]*\)\](\([^)]*\))/@\1/g')
+          # Escape double quotes in FORMATTED_NOTES
+          FORMATTED_NOTES="${FORMATTED_NOTES//\"/\\\"}"
           echo "Formatted release notes: $FORMATTED_NOTES"
           echo "formatted_notes=$FORMATTED_NOTES" >> $GITHUB_OUTPUT
 
@@ -77,10 +79,20 @@ jobs:
 
           # Create the release draft using the GitHub API
           RESPONSE=$(curl -X POST \
+            -w "%{http_code}" \
             -H "Authorization: token $token" \
             -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/$repo/releases" \
             -d "{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"body\": \"$description\",\"draft\": $draft,\"prerelease\": $prerelease}")
 
+          # Extract the status code from the response
+          STATUS_CODE=$(echo "${RESPONSE: -3}")
+
           # Print the response for verification
           echo "Response: $RESPONSE"
+
+          # Fail the workflow if the status code is not in the 2xx range
+          if [[ "$STATUS_CODE" -lt 200 || "$STATUS_CODE" -ge 300 ]]; then
+            echo "Error: GitHub API request failed with status code $STATUS_CODE"
+            exit 1
+          fi
