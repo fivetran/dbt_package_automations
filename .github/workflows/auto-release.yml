@@ -53,7 +53,6 @@ jobs:
           echo "Formatted release notes: $FORMATTED_NOTES"
           echo "formatted_notes=$FORMATTED_NOTES" >> $GITHUB_OUTPUT
 
-
       - name: Get Repository Name
         id: repo_name
         run: |
