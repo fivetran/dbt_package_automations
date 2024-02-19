@@ -10,7 +10,7 @@ select
       case
         when lower(data_type) like '%timestamp%' then 'dbt.type_timestamp()' 
         when lower(data_type) = 'text' then 'dbt.type_string()' 
-        when lower(data_type) = 'boolean' then '"boolean"'
+        when lower(data_type) = 'boolean' then 'dbt.type_boolean()'
         when lower(data_type) like '%num%' then 'dbt.type_numeric()' 
         when lower(data_type) = 'float' then 'dbt.type_float()' 
         when lower(data_type) = 'date' then '"date"'
@@ -44,7 +44,7 @@ select
       case
         when lower(data_type) like '%timestamp%' then 'dbt.type_timestamp()' 
         when lower(data_type) = 'string' then 'dbt.type_string()' 
-        when lower(data_type) = 'bool' then '"boolean"'
+        when lower(data_type) = 'bool' then 'dbt.type_boolean()'
         when lower(data_type) like '%num%' then 'dbt.type_numeric()' 
         when lower(data_type) = 'float64' then 'dbt.type_float()' 
         when lower(data_type) = 'int64' then 'dbt.type_int()' 

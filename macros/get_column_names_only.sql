@@ -14,7 +14,11 @@ order by 1
 {% set results = run_query(query) %}
 {% set results_list = results.columns[0].values() %}}
 {% for col in results_list %}
+{% if col in ('id','name') %}
+{% do jinja_macro.append('        ' ~ col ~ ' as ' ~ table_name ~ '_' ~ col ~ (',' if not loop.last)) %}
+{% else %}
 {% do jinja_macro.append('        ' ~ col ~ (',' if not loop.last)) %}
+{% endif %}
 {% endfor %}
 
 {% if execute %}
@@ -46,7 +50,11 @@ order by 1
 {% set results = run_query(query) %}
 {% set results_list = results.columns[0].values() %}}
 {% for col in results_list %}
+{% if col in ('id','name') %}
+{% do jinja_macro.append('        ' ~ col ~ ' as ' ~ table_name ~ '_' ~ col ~ (',' if not loop.last)) %}
+{% else %}
 {% do jinja_macro.append('        ' ~ col ~ (',' if not loop.last)) %}
+{% endif %}
 {% endfor %}
 
 {% if execute %}
