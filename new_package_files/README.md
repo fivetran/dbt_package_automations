@@ -12,7 +12,7 @@
 
 # package_display_name dbt Package ([Docs](https://fivetran.github.io/dbt_package_name_here/))
 
-# 📣 What does this dbt package do?
+## What does this dbt package do?
 
 This package models package_display_name data from [Fivetran's connector](https://fivetran.com/docs/applications/package_name_here). It uses data in the format described by [this ERD](https://fivetran.com/docs/applications/package_name_here#schemainformation).
 
@@ -38,15 +38,15 @@ The following table provides a detailed list of all models materialized within t
 | [model_here]()  | Model description   |
 <!--section-end-->
 
-# 🎯 How do I use the dbt package?
+## 🎯 How do I use the dbt package?
 
-## Step 1: Prerequisites
+### Step 1: Prerequisites
 To use this dbt package, you must have the following:
 
 - At least one Fivetran package_display_name connector syncing data into your destination.
 - A **BigQuery**, **Snowflake**, **Redshift**, **Databricks**, or **PostgreSQL** destination.
 
-### Databricks dispatch configuration
+#### Databricks dispatch configuration
 If you are using a Databricks destination with this package, you must add the following (or a variation of the following) dispatch configuration within your `dbt_project.yml`. This is required in order for the package to accurately search for macros within the `dbt-labs/spark_utils` then the `dbt-labs/dbt_utils` packages respectively.
 ```yml
 dispatch:
@@ -54,7 +54,7 @@ dispatch:
     search_order: ['spark_utils', 'dbt_utils']
 ```
 
-## Step 2: Install the package
+### Step 2: Install the package
 Include the following package_display_name package version in your `packages.yml` file:
 > TIP: Check [dbt Hub](https://hub.getdbt.com/) for the latest installation instructions or [read the dbt docs](https://docs.getdbt.com/docs/package-management) for more information on installing packages.
 ```yml
@@ -63,8 +63,8 @@ packages:
     version: [">=0.1.0", "<0.2.0"] # we recommend using ranges to capture non-breaking changes automatically
 ```
 
-## Step 3: Define database and schema variables
-### Single connector
+### Step 3: Define database and schema variables
+#### Single connector
 By default, this package runs using your destination and the `package_name_here` schema. If this is not where your package_display_name data is (for example, if your package_display_name schema is named `package_name_here_fivetran`), add the following configuration to your root `dbt_project.yml` file:
 
 ```yml
@@ -74,8 +74,8 @@ vars:
     package_name_here_database: your_database_name
     package_name_here_schema: your_schema_name
 ```
-### Union multiple connectors
-If you have multiple package_display_name connectors in Fivetran and would like to use this package on all of them simultaneously, we have provided functionality to do so. The package will union all of the data together and pass the unioned table into the transformations. You will be able to see which source it came from in the `source_relation` column of each model. To use this functionality, you will need to set either the `package_name_here_union_schemas` OR `package_name_here_union_databases` variables (cannot do both) in your root `dbt_project.yml` file:
+#### Union multiple connectors
+If you have multiple package_display_name connectors in Fivetran and want to use this package on all of them simultaneously, we have provided functionality to do so. The package will union all of the data together and pass the unioned table into the transformations. You will be able to see which source it came from in the `source_relation` column of each model. To use this functionality, you will need to set either the `package_name_here_union_schemas` OR `package_name_here_union_databases` variables (cannot do both) in your root `dbt_project.yml` file:
 
 ```yml
 # dbt_project.yml
@@ -85,15 +85,15 @@ vars:
     package_name_here_union_databases: ['package_name_here_usa','package_name_here_canada'] # use this if the data is in different databases/projects but uses the same schema name
 ```
 
-Please be aware that the native `source.yml` connection set up in the package will not function when the union schema/database feature is utilized. Although the data will be correctly combined, you will not observe the sources linked to the package models in the Directed Acyclic Graph (DAG). This happens because the package includes only one defined `source.yml`.
+The native `source.yml` connection set up in the package will not function when the union schema/database feature is utilized. Although the data will be correctly combined, you will not observe the sources linked to the package models in the Directed Acyclic Graph (DAG). This happens because the package includes only one defined `source.yml`.
 
 To connect your multiple schema/database sources to the package models, follow the steps outlined in the [Union Data Defined Sources Configuration](https://github.com/fivetran/dbt_fivetran_utils/tree/releases/v0.4.latest#union_data-source) section of the Fivetran Utils documentation for the union_data macro. This will ensure a proper configuration and correct visualization of connections in the DAG.
 
 
-## Step 4: Enable/Disable Variables
+### Step 4: Enable/Disable Variables
 [If necessary, use this step to detail enable/disable variables. See below as an example. If this is not necessary you can delete this section.]
 
-By default, this package does not bring in data from the package_display_name example source tables. However, if you would like the package to bring in these sources and the downstream models, add the following configuration to your `dbt_project.yml`:
+By default, this package does not bring in data from the package_display_name example source tables. However, if you want the package to bring in these sources and the downstream models, add the following configuration to your `dbt_project.yml`:
 
 ```yml
 vars:
@@ -101,10 +101,10 @@ vars:
     package_name_here__using_core_mailing_lists: True # default = False
 ```
 
-## (Optional) Step 5: Additional configurations
+### (Optional) Step 5: Additional configurations
 
 [If necessary, use this step to detail passthrough variables. See below as an example. If this is not necessary you can delete this section.]
-### Passing Through Additional Fields
+#### Passing Through Additional Fields
 This package includes all source columns defined in the macros folder. You can add more columns using our pass-through column variables. These variables allow for the pass-through fields to be aliased (`alias`) and casted (`transform_sql`) if desired, but not required. Datatype casting is configured via a sql snippet within the `transform_sql` key. You may add the desired sql while omitting the `as field_name` at the end and your custom pass-though fields will be casted accordingly. Use the below format for declaring the respective pass-through variables:
 
 ```yml
@@ -122,10 +122,10 @@ vars:
       alias: "new_name"
 ```
 
-> Please create an [issue](https://github.com/fivetran/dbt_package_name_here/issues) if you'd like to see passthrough column support for other tables in the Qualtrics schema.
+> Create an [issue](https://github.com/fivetran/dbt_package_name_here/issues) if you'd like to see passthrough column support for other tables in the Qualtrics schema.
 
-### Changing the Build Schema
-By default this package will build the package_display_name staging models within a schema titled (<target_schema> + `_stg_package_name_here`) and the package_display_name final models within a schema titled (<target_schema> + `_package_name_here`) in your target database. If this is not where you would like your modeled qualtrics data to be written to, add the following configuration to your `dbt_project.yml` file:
+#### Changing the Build Schema
+By default this package will build the package_display_name staging models within a schema titled (<target_schema> + `_stg_package_name_here`) and the package_display_name final models within a schema titled (<target_schema> + `_package_name_here`) in your target database. If this is not where you want your modeled qualtrics data to be written to, add the following configuration to your `dbt_project.yml` file:
 
 ```yml
 # dbt_project.yml
@@ -137,7 +137,7 @@ models:
         +schema: my_new_schema_name # leave blank for just the target_schema
 ```
 
-### Change the source table references
+#### Change the source table references
 If an individual source table has a different name than the package expects, add the table name as it appears in your destination to the respective variable:
 
 > IMPORTANT: See this project's [`dbt_project.yml`](https://github.com/fivetran/dbt_package_name_here/blob/main/dbt_project.yml) variable declarations to see the expected names.
@@ -151,7 +151,7 @@ vars:
 </details>
 
 
-## (Optional) Step 6: Orchestrate your models with Fivetran Transformations for dbt Core™
+### (Optional) Step 6: Orchestrate your models with Fivetran Transformations for dbt Core™
 <details><summary>Expand for details</summary>
 <br>
     
@@ -159,8 +159,8 @@ Fivetran offers the ability for you to orchestrate your dbt project through [Fiv
 </details>
 
 
-# 🔍 Does this package have dependencies?
-This dbt package is dependent on the following dbt packages. Please be aware that these dependencies are installed by default within this package. For more information on the following packages, refer to the [dbt hub](https://hub.getdbt.com/) site.
+## 🔍 Does this package have dependencies?
+This dbt package is dependent on the following dbt packages. These dependencies are installed by default within this package. For more information on the following packages, refer to the [dbt hub](https://hub.getdbt.com/) site.
 > IMPORTANT: If you have any of these dependent packages in your own `packages.yml` file, we highly recommend that you remove them from your root `packages.yml` to avoid package version conflicts.
     
 ```yml
@@ -171,16 +171,16 @@ packages:
     - package: dbt-labs/dbt_utils
       version: [">=1.0.0", "<2.0.0"]
 ```
-# 🙌 How is this package maintained and can I contribute?
-## Package Maintenance
+## How is this package maintained and can I contribute?
+### Package Maintenance
 The Fivetran team maintaining this package _only_ maintains the latest version of the package. We highly recommend you stay consistent with the [latest version](https://hub.getdbt.com/fivetran/package_name_here/latest/) of the package and refer to the [CHANGELOG](https://github.com/fivetran/dbt_package_name_here/blob/main/CHANGELOG.md) and release notes for more information on changes across versions.
 
-## Contributions
-A small team of analytics engineers at Fivetran develops these dbt packages. However, the packages are made better by community contributions! 
+### Contributions
+A small team of analytics engineers at Fivetran develops these dbt packages. However, the packages are made better by community contributions.
 
-We highly encourage and welcome contributions to this package. Check out [this dbt Discourse article](https://discourse.getdbt.com/t/contributing-to-a-dbt-package/657) on the best workflow for contributing to a package!
+We highly encourage and welcome contributions to this package. Check out [this dbt Discourse article](https://discourse.getdbt.com/t/contributing-to-a-dbt-package/657) on the best workflow for contributing to a package.
 
-# 🏪 Are there any resources available?
-- If you have questions or want to reach out for help, please refer to the [GitHub Issue](https://github.com/fivetran/dbt_package_name_here/issues/new/choose) section to find the right avenue of support for you.
-- If you would like to provide feedback to the dbt package team at Fivetran or would like to request a new dbt package, fill out our [Feedback Form](https://www.surveymonkey.com/r/DQ7K7WW).
-- Have questions or want to be part of the community discourse? Create a post in the [Fivetran community](https://community.fivetran.com/t5/user-group-for-dbt/gh-p/dbt-user-group) and our team along with the community can join in on the discussion!
+## Are there any resources available?
+- If you have questions or want to reach out for help, refer to the [GitHub Issue](https://github.com/fivetran/dbt_package_name_here/issues/new/choose) section to find the right avenue of support for you.
+- If you want to provide feedback to the dbt package team at Fivetran or want to request a new dbt package, fill out our [Feedback Form](https://www.surveymonkey.com/r/DQ7K7WW).
+- Have questions or want to be part of the community discourse? Create a post in the [Fivetran community](https://community.fivetran.com/t5/user-group-for-dbt/gh-p/dbt-user-group) and our team along with the community can join in on the discussion.
