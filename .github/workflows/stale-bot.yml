@@ -24,6 +24,6 @@ jobs:
           close-pr-message: ${{ env.CLOSE_PR_MSG }}
           close-issue-reason: ${{ env.CLOSE_ISSUE_REASON }}
           days-before-stale: 180
-          days-before-close: 30
+          days-before-close: 2 #using 2 for testing, but before merge we want it to be more like 30
           exempt-issue-labels: 'pinned'
           exempt-pr-labels: 'pinned'
