@@ -27,3 +27,5 @@ jobs:
           days-before-close: 1 #using 1 for testing, but before merge we want it to be more like 30
           exempt-issue-labels: 'pinned'
           exempt-pr-labels: 'pinned'
+          stale-issue-label: 'status:stale'
+          stale-pr-label: 'status:stale'
