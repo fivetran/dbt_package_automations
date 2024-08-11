@@ -38,11 +38,47 @@ jobs:
           echo "Adding 2nd Reviewer: $NEEDS_SECOND_REVIEWER"
           echo "needs_second_reviewer=$NEEDS_SECOND_REVIEWER" >> $GITHUB_OUTPUT
 
+      - name: Check Related Repository PR Reviewers
+        id: determine_2nd_reviewer
+        run: |
+          # Get the current repository name
+          CURRENT_REPO_NAME="${{ github.repository }}"
+          
+          # Check if the current repository name contains 'source' to determine name of related repo
+          if [[ $CURRENT_REPO_NAME == *source* ]]; then
+            # If 'source' is in the name, remove it from the related repository name
+            RELATED_REPO=$(echo "$CURRENT_REPO_NAME" | sed 's/_source//')
+          else
+            # If 'source' is not in the name, add it to the related repository name
+            RELATED_REPO="${CURRENT_REPO_NAME}_source"
+          fi
+
+          echo "Related Repository: $RELATED_REPO"
+
+          # From related repo, retrieve the most recently updated, open PR.
+          PR_INFO=$(curl -s -H \
+            -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$RELATED_REPO/pulls?state=open&sort=updated&direction=desc" | jq '.[0].requested_reviewers')
+
+          REVIEWERS_COUNT=$(jq 'length' <<< "$PR_INFO")
+          echo "$REVIEWERS_COUNT requested reviewers in $RELATED_REPO"
+
+          # Use 2nd reviewer from related repo if assigned, otherwise call carousel
+          if [[ $REVIEWERS_COUNT -gt 1 ]]; then
+            SECOND_REVIEWER=$(jq '.[1].login' <<< "$PR_INFO")
+          else
+            SECOND_REVIEWER="dbt"
+          fi
+
+          echo "2nd Reviewer set as: $SECOND_REVIEWER"
+          echo "second_reviewer=$SECOND_REVIEWER" >> $GITHUB_OUTPUT
+
       - name: Assign Second Reviewer
         if: steps.check_needs_second_reviewer.outputs.needs_second_reviewer == 'true'
         run: |
           PR_NUMBER=${{ steps.check_needs_second_reviewer.outputs.pr_number }}
-          SECOND_REVIEWER="dbt"
+          SECOND_REVIEWER=${{ steps.determine_2nd_reviewer.outputs.second_reviewer }}
           RESPONSE=$(curl -L \
             -X POST \
             -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
