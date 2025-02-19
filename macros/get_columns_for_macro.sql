@@ -8,7 +8,7 @@ select
       lower(column_name), 
       '", "datatype": ',
       case
-        when lower(data_type) like '%timestamp%' then 'dbt.type_timestamp()' 
+        when lower(data_type) like '%timestamp%' or lower(data_type) like '%datetime%' then 'dbt.type_timestamp()' 
         when lower(data_type) = 'text' then 'dbt.type_string()' 
         when lower(data_type) = 'boolean' then 'dbt.type_boolean()'
         when lower(data_type) like '%num%' then 'dbt.type_numeric()' 
