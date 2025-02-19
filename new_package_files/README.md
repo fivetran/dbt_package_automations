@@ -1,4 +1,6 @@
-<p align="center">
+# package_display_name dbt Package ([Docs](https://fivetran.github.io/dbt_package_name_here/))
+
+<p align="left">
     <a alt="License"
         href="https://github.com/fivetran/dbt_package_name_here/blob/main/LICENSE">
         <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" /></a>
@@ -10,14 +12,11 @@
         <img src="https://img.shields.io/badge/Contributions-welcome-blueviolet" /></a>
 </p>
 
-# package_display_name dbt Package ([Docs](https://fivetran.github.io/dbt_package_name_here/))
-
 ## What does this dbt package do?
 
 This package models package_display_name data from [Fivetran's connector](https://fivetran.com/docs/applications/package_name_here). It uses data in the format described by [this ERD](https://fivetran.com/docs/applications/package_name_here#schemainformation).
 
 The main focus of the package is to transform the core object tables into analytics-ready models, including:
-<!--section="package_name_here_model"-->
   - Materializes [package_display_name staging tables](https://fivetran.github.io/dbt_package_name_here/#!/overview/package_name_here_source/models/?g_v=1) which leverage data in the format described by [this ERD](https://fivetran.com/docs/applications/package_name_here/#schemainformation). These staging tables clean, test, and prepare your package_display_name data from [Fivetran's connector](https://fivetran.com/docs/applications/package_name_here_source) for analysis by doing the following:
   - Name columns for consistency across all packages and for easier analysis
       - Primary keys are renamed from `id` to `<table name>_id`. 
@@ -29,13 +28,16 @@ The main focus of the package is to transform the core object tables into analyt
 
 > This package does not apply freshness tests to source data due to the variability of survey cadences.
 
-<!--section="package_name_here_model"-->
+<!--section="package_name_here_transformation_model"-->
 The following table provides a detailed list of all models materialized within this package by default. 
 > TIP: See more details about these models in the package's [dbt docs site](https://fivetran.github.io/dbt_package_name_here/#!/overview/package_name_here).
 
 | **model**                 | **description**                                                                                                    |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | [model_here]()  | Model description   |
+
+### Materialized Models
+Each Quickstart transformation job run materializes <Insert number of models> models if all components of this data model are enabled. This count includes all staging, intermediate, and final models materialized as `view`, `table`, or `incremental`.
 <!--section-end-->
 
 ## How do I use the dbt package?
@@ -43,7 +45,7 @@ The following table provides a detailed list of all models materialized within t
 ### Step 1: Prerequisites
 To use this dbt package, you must have the following:
 
-- At least one Fivetran package_display_name connector syncing data into your destination.
+- At least one Fivetran package_display_name connection syncing data into your destination.
 - A **BigQuery**, **Snowflake**, **Redshift**, **Databricks**, or **PostgreSQL** destination.
 
 #### Databricks dispatch configuration
@@ -64,7 +66,7 @@ packages:
 ```
 
 ### Step 3: Define database and schema variables
-#### Single connector
+#### Option A: Single connection
 By default, this package runs using your destination and the `package_name_here` schema. If this is not where your package_display_name data is (for example, if your package_display_name schema is named `package_name_here_fivetran`), add the following configuration to your root `dbt_project.yml` file:
 
 ```yml
@@ -74,21 +76,66 @@ vars:
     package_name_here_database: your_database_name
     package_name_here_schema: your_schema_name
 ```
-#### Union multiple connectors
-If you have multiple package_display_name connectors in Fivetran and want to use this package on all of them simultaneously, we have provided functionality to do so. The package will union all of the data together and pass the unioned table into the transformations. You will be able to see which source it came from in the `source_relation` column of each model. To use this functionality, you will need to set either the `package_name_here_union_schemas` OR `package_name_here_union_databases` variables (cannot do both) in your root `dbt_project.yml` file:
+
+#### Option B: Union multiple connections
+If you have multiple package_display_name connections in Fivetran and would like to use this package on all of them simultaneously, we have provided functionality to do so. For each source table, the package will union all of the data together and pass the unioned table into the transformations. The `source_relation` column in each model indicates the origin of each record.
+
+To use this functionality, you will need to set the `package_name_here_sources` variable in your root `dbt_project.yml` file:
 
 ```yml
 # dbt_project.yml
 
 vars:
-    package_name_here_union_schemas: ['package_name_here_usa','package_name_here_canada'] # use this if the data is in different schemas/datasets of the same database/project
-    package_name_here_union_databases: ['package_name_here_usa','package_name_here_canada'] # use this if the data is in different databases/projects but uses the same schema name
+  package_name_here_sources:
+    - database: connection_1_destination_name # Likely Required. Default value = target.database
+      schema: connection_1_schema_name # Likely Required. Default value = 'package_name_here'
+      name: connection_1_source_name # Required only if following the step in the following subsection
+
+    - database: connection_2_destination_name
+      schema: connection_2_schema_name
+      name: connection_2_source_name
 ```
 
-The native `source.yml` connection set up in the package will not function when the union schema/database feature is utilized. Although the data will be correctly combined, you will not observe the sources linked to the package models in the Directed Acyclic Graph (DAG). This happens because the package includes only one defined `source.yml`.
+> **Note:** If you choose to make use of this unioning functionality, you will incur an additional <Insert number of staging models> staging models materialized as `views`, suffixed with `_tmp`. These extra models are necessary for the proper compilation of our connection-unioning macros.
 
-To connect your multiple schema/database sources to the package models, follow the steps outlined in the [Union Data Defined Sources Configuration](https://github.com/fivetran/dbt_fivetran_utils/tree/releases/v0.4.latest#union_data-source) section of the Fivetran Utils documentation for the union_data macro. This will ensure a proper configuration and correct visualization of connections in the DAG.
+##### Recommended: Incorporate unioned sources into DAG
+> *If you are running the package through [Fivetran Transformations for dbt Core™](https://fivetran.com/docs/transformations/dbt#transformationsfordbtcore), the below step is necessary in order to synchronize model runs with your package_name_here connections. Alternatively, you may choose to run the package through Fivetran [Quickstart](https://fivetran.com/docs/transformations/quickstart), which would create separate sets of models for each package_name_here source rather than one set of unioned models.*
 
+<details><summary>Expand for details</summary>
+<br>
+
+By default, this package defines one single-connection source, called `package_name_here`, which will be disabled if you are unioning multiple connections. This means that your DAG will not include your package_name_here sources, though the package will run successfully.
+
+To properly incorporate all of your package_name_here connections into your project's DAG:
+1. Define each of your sources in a `.yml` file in your project. Utilize the following template for the `source`-level configurations, and, **most importantly**, copy and paste the table and column-level definitions from the package's `src_package_name_here.yml` [file](https://github.com/fivetran/dbt_package_name_here/blob/main/models/staging/src_package_name_here.yml).
+
+```yml
+# a .yml file in your root project
+version: 2
+
+sources:
+  - name: <name> # ex: Should match name in package_name_here_sources
+    schema: <schema_name>
+    database: <database_name>
+    loader: fivetran
+    loaded_at_field: _fivetran_synced
+      
+    freshness: # feel free to adjust to your liking
+      warn_after: {count: 72, period: hour}
+      error_after: {count: 168, period: hour}
+
+    tables: # copy and paste from package_name_here/models/staging/src_package_name_here.yml - see https://support.atlassian.com/bitbucket-cloud/docs/yaml-anchors/ for how to use &/* anchors to only do so once
+```
+
+2. Set the `has_defined_sources` variable (scoped to the `package_name_here` package) to `True`, like such:
+```yml
+# dbt_project.yml
+vars:
+  package_name_here:
+    has_defined_sources: true
+```
+
+</details>
 
 ### Step 4: Enable/Disable Variables
 [If necessary, use this step to detail enable/disable variables. See below as an example. If this is not necessary you can delete this section.]
@@ -102,6 +149,7 @@ vars:
 ```
 
 ### (Optional) Step 5: Additional configurations
+<details open><summary>Expand/Collapse details</summary>
 
 [If necessary, use this step to detail passthrough variables. See below as an example. If this is not necessary you can delete this section.]
 #### Passing Through Additional Fields
@@ -138,7 +186,7 @@ models:
 ```
 
 #### Change the source table references
-If an individual source table has a different name than the package expects, add the table name as it appears in your destination to the respective variable:
+If an individual source table has a different name than the package expects, add the table name as it appears in your destination to the respective variable. This feature is not available if you are unioning multiple connections.
 
 > IMPORTANT: See this project's [`dbt_project.yml`](https://github.com/fivetran/dbt_package_name_here/blob/main/dbt_project.yml) variable declarations to see the expected names.
 
@@ -180,7 +228,9 @@ A small team of analytics engineers at Fivetran develops these dbt packages. How
 
 We highly encourage and welcome contributions to this package. Check out [this dbt Discourse article](https://discourse.getdbt.com/t/contributing-to-a-dbt-package/657) on the best workflow for contributing to a package.
 
+#### Contributors
+We thank [everyone](https://github.com/fivetran/dbt_package_name_here/graphs/contributors) who has taken the time to contribute. Each PR, bug report, and feature request has made this package better and is truly appreciated.
+
 ## Are there any resources available?
 - If you have questions or want to reach out for help, refer to the [GitHub Issue](https://github.com/fivetran/dbt_package_name_here/issues/new/choose) section to find the right avenue of support for you.
 - If you want to provide feedback to the dbt package team at Fivetran or want to request a new dbt package, fill out our [Feedback Form](https://www.surveymonkey.com/r/DQ7K7WW).
-- Have questions or want to be part of the community discourse? Create a post in the [Fivetran community](https://community.fivetran.com/t5/user-group-for-dbt/gh-p/dbt-user-group) and our team along with the community can join in on the discussion.
