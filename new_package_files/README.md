@@ -17,7 +17,6 @@
 This package models package_display_name data from [Fivetran's connector](https://fivetran.com/docs/applications/package_name_here). It uses data in the format described by [this ERD](https://fivetran.com/docs/applications/package_name_here#schemainformation).
 
 The main focus of the package is to transform the core object tables into analytics-ready models, including:
-<!--section="package_name_here_model"-->
   - Materializes [package_display_name staging tables](https://fivetran.github.io/dbt_package_name_here/#!/overview/package_name_here_source/models/?g_v=1) which leverage data in the format described by [this ERD](https://fivetran.com/docs/applications/package_name_here/#schemainformation). These staging tables clean, test, and prepare your package_display_name data from [Fivetran's connector](https://fivetran.com/docs/applications/package_name_here_source) for analysis by doing the following:
   - Name columns for consistency across all packages and for easier analysis
       - Primary keys are renamed from `id` to `<table name>_id`. 
@@ -187,7 +186,7 @@ models:
 ```
 
 #### Change the source table references
-If an individual source table has a different name than the package expects, add the table name as it appears in your destination to the respective variable:
+If an individual source table has a different name than the package expects, add the table name as it appears in your destination to the respective variable. This feature is not available if you are unioning multiple connections.
 
 > IMPORTANT: See this project's [`dbt_project.yml`](https://github.com/fivetran/dbt_package_name_here/blob/main/dbt_project.yml) variable declarations to see the expected names.
 
