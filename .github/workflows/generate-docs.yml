@@ -96,6 +96,7 @@ jobs:
       run: |
         SCHEMA_VAR_NAME="${{ inputs.schema_var_name }}"
         VARS_JSON="{$SCHEMA_VAR_NAME:'public'}"
+        echo "$VARS_JSON"
     
         dbt deps
         dbt seed --full-refresh
