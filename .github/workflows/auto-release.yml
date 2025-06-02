@@ -1,6 +1,11 @@
 name: Auto-Create Release
+
 on:
   workflow_call:
+    inputs:
+      target_branch:
+        required: false
+        type: string
 
 jobs:
   update:
@@ -8,11 +13,10 @@ jobs:
     name: Create a release
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Extract new version from changelog
         id: new_version
         run: |
-          # Extract the version number from the changelog file
           VERSION=$(grep -oP 'v[0-9]+.*' CHANGELOG.md | head -1 | tr -d '[:space:]')
           echo "Extracted version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -20,35 +24,63 @@ jobs:
       - name: Get current version from Github
         id: current_version
         run: |
-          # Get the latest published release using the GitHub REST API
-          CURRENT_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GH_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/releases/latest" | jq -r '.tag_name')
-          echo "Latest published release tag: $CURRENT_VERSION"
-          echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/latest")
+
+          CURRENT_VERSION=$(echo "$RESPONSE" | jq -r '.tag_name // empty')
+
+          if [[ -z "$CURRENT_VERSION" ]]; then
+            echo "No previous release found."
+            echo "version=__none__" >> $GITHUB_OUTPUT
+          else
+            echo "Latest published release tag: $CURRENT_VERSION"
+            echo "version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Detect if version is a pre-release
+        id: detect_prerelease
+        run: |
+          VERSION="${{ steps.new_version.outputs.version }}"
+          if [[ "$VERSION" =~ -a[0-9]+$ || "$VERSION" =~ -b[0-9]+$ ]]; then
+            echo "Detected pre-release version."
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "Detected stable release."
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+        shell: bash
 
       - name: Check version comparison
         id: check_version
         run: |
-          if [[ "${{ steps.new_version.outputs.version }}" == "${{ steps.current_version.outputs.version }}" ]]; then
+          NEW_VERSION="${{ steps.new_version.outputs.version }}"
+          CURRENT_VERSION="${{ steps.current_version.outputs.version }}"
+
+          if [[ "$CURRENT_VERSION" == "__none__" ]]; then
+            echo "No previous release — this will be the first."
+          elif [[ "$NEW_VERSION" == "$CURRENT_VERSION" ]]; then
             echo "Version is unchanged. Skipping release creation."
-            exit 1  # This will cause the job to fail and skip subsequent steps.
+            exit 1
+          else
+            echo "New version detected. Proceeding with release creation."
           fi
-          echo "New version detected. Proceeding with release creation."
 
       - name: Extract release notes from changelog
         id: extract_notes
         run: |
-          # Use awk to extract the line numbers of the start and end headings
           START_LINE=$(awk "/^# .*${{ steps.new_version.outputs.version }}/{print NR+1; exit}" CHANGELOG.md)
-          END_LINE=$(awk "/^# .*${{ steps.current_version.outputs.version }}/{print NR-1; exit}" CHANGELOG.md)
-          # Extract the release notes between the line numbers
+
+          if [[ "${{ steps.current_version.outputs.version }}" == "__none__" ]]; then
+            END_LINE=$(wc -l < CHANGELOG.md)
+          else
+            END_LINE=$(awk "/^# .*${{ steps.current_version.outputs.version }}/{print NR-1; exit}" CHANGELOG.md)
+          fi
+
           awk -v start_line="$START_LINE" -v end_line="$END_LINE" 'NR >= start_line && NR <= end_line' CHANGELOG.md > extracted_notes.txt
 
       - name: Format release notes for description
         id: format_notes
         run: |
-          # Replace newline characters with appropriate line breaks and remove link from contributors
           FORMATTED_NOTES=$(sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g' extracted_notes.txt | sed 's/\[@\([[:alnum:]_-]*\)\](\([^)]*\))/@\1/g')
-          # Escape double quotes in FORMATTED_NOTES
           FORMATTED_NOTES="${FORMATTED_NOTES//\"/\\\"}"
           echo "Formatted release notes: $FORMATTED_NOTES"
           echo "formatted_notes=$FORMATTED_NOTES" >> $GITHUB_OUTPUT
@@ -56,7 +88,6 @@ jobs:
       - name: Get Repository Name
         id: repo_name
         run: |
-          # Use basename to get the repository name without the owner
           REPO_NAME=$(basename "${{ github.repository }}")
           echo "Repository Name: $REPO_NAME"
           echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
@@ -67,17 +98,15 @@ jobs:
           version: ${{ steps.new_version.outputs.version }}
           title: ${{ steps.new_version.outputs.version }} ${{ steps.repo_name.outputs.repo_name }}
           description: ${{ steps.format_notes.outputs.formatted_notes }}
-          branch: 'main'
+          branch: ${{ inputs.target_branch || 'main' }}
           draft: 'true'
-          prerelease: 'false'
+          prerelease: ${{ steps.detect_prerelease.outputs.is_prerelease }}
           repo: ${{ github.repository }}
           token: ${{ secrets.GH_TOKEN }}
           compare_url: "https://github.com/${{ github.repository }}/compare/${{ steps.current_version.outputs.version }}...${{ steps.new_version.outputs.version }}"
         run: |
-          # Concatenate the link to the full changelog with the release description
           description="${description}\n\n**Full Changelog**: ${compare_url}"
 
-          # Create the release draft using the GitHub API
           RESPONSE=$(curl -X POST \
             -w "%{http_code}" \
             -H "Authorization: token $token" \
@@ -85,13 +114,9 @@ jobs:
             "https://api.github.com/repos/$repo/releases" \
             -d "{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"body\": \"$description\",\"draft\": $draft,\"prerelease\": $prerelease}")
 
-          # Extract the status code from the response
           STATUS_CODE=$(echo "${RESPONSE: -3}")
-
-          # Print the response for verification
           echo "Response: $RESPONSE"
 
-          # Fail the workflow if the status code is not in the 2xx range
           if [[ "$STATUS_CODE" -lt 200 || "$STATUS_CODE" -ge 300 ]]; then
             echo "Error: GitHub API request failed with status code $STATUS_CODE"
             exit 1
