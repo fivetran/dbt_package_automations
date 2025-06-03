@@ -19,10 +19,6 @@ jobs:
         image: postgres
         ports:
           - 5432:5432
-        env:
-          POSTGRES_USER: dbt
-          POSTGRES_PASSWORD: dbt
-          POSTGRES_DB: dbt
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -30,11 +26,9 @@ jobs:
           --health-retries 5
 
     steps:
-    - name: Log actor info
+    - name: Log actor
       run: |
         echo "Triggered by: ${{ github.actor }}"
-        echo "Repository: ${{ github.repository }}"
-        echo "Label: ${{ github.event.label.name }}"
 
     - name: Checkout repo
       uses: actions/checkout@v4
@@ -66,10 +60,10 @@ jobs:
             container:
               type: postgres
               host: localhost
-              user: dbt
-              password: dbt
+              user: postgres
+              password: ""
               port: 5432
-              dbname: dbt
+              dbname: postgres
               schema: public
               threads: 1
         EOF
