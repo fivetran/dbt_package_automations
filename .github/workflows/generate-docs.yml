@@ -30,6 +30,12 @@ jobs:
           --health-retries 5
 
     steps:
+    - name: Log actor info
+      run: |
+        echo "Triggered by: ${{ github.actor }}"
+        echo "Repository: ${{ github.repository }}"
+        echo "Label: ${{ github.event.label.name }}"
+
     - name: Checkout repo
       uses: actions/checkout@v4
       with:
