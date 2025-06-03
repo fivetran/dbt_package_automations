@@ -9,7 +9,9 @@ on:
 
 jobs:
   regen-docs:
-    if: github.event.label.name == 'docs:ready'
+    if: >
+      github.event.label.name == 'docs:ready' &&
+      contains(github.actor, 'fivetran')
     runs-on: ubuntu-latest
 
     services:
