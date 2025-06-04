@@ -127,6 +127,12 @@ jobs:
           echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
           echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
 
+      - name: Debug token injection
+        run: |
+          echo "Token starts with: ${token:0:4}****"
+        env:
+          token: ${{ secrets.GH_TOKEN }}
+
       - name: Create the release
         id: create_release
         env:
