@@ -142,7 +142,7 @@ jobs:
           version: ${{ steps.new_version.outputs.version }}
           title: ${{ steps.new_version.outputs.version }} ${{ steps.repo_name.outputs.repo_name }}
           description: ${{ steps.format_notes.outputs.formatted_notes }}
-          branch: ${{ steps.release_params.outputs.release_branch }}
+          branch: 'main'
           draft: 'true'
           prerelease: ${{ steps.release_params.outputs.is_prerelease }}
           repo: ${{ github.repository }}
