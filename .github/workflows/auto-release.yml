@@ -19,7 +19,7 @@ jobs:
       - name: Get current version from GitHub (including pre-releases)
         id: recent_version
         run: |
-          RESPONSE=$(curl -s https://api.github.com/repos/fivetran-catfritz/release_tester/releases)
+          RESPONSE=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases)
 
           RECENT_VERSION=$(echo "$RESPONSE" | jq -r '
             if type == "array" then
@@ -41,13 +41,27 @@ jobs:
             echo "version=$RECENT_VERSION" >> $GITHUB_OUTPUT
           fi
 
-      - name: Get current stable release version from Github (NOT including pre-releases)
+      - name: Get current stable release version from GitHub (NOT including pre-releases)
         id: current_stable_version
         run: |
-          # Get the latest published release using the GitHub REST API
-          CURRENT_STABLE_VERSION=$(curl -s -H "Authorization: token ${{ secrets.GH_TOKEN }}" "https://api.github.com/repos/${{ github.repository }}/releases/latest" | jq -r '.tag_name')
-          echo "Latest stable release tag: $CURRENT_STABLE_VERSION"
-          echo "version=$CURRENT_STABLE_VERSION" >> $GITHUB_OUTPUT
+          # Fetch the latest full release (GitHub automatically excludes pre-releases)
+          RESPONSE=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest)
+
+          STABLE_VERSION=$(echo "$RESPONSE" | jq -r '
+            if type == "object" and .tag_name then
+              .tag_name
+            else
+              empty
+            end
+          ')
+
+          if [[ -z "$STABLE_VERSION" ]]; then
+            echo "No stable release found."
+            echo "version=__none__" >> $GITHUB_OUTPUT
+          else
+            echo "Latest stable release tag: $STABLE_VERSION"
+            echo "version=$STABLE_VERSION" >> $GITHUB_OUTPUT
+          fi
 
       - name: Check version comparison
         id: check_version
@@ -95,24 +109,23 @@ jobs:
         run: |
           VERSION="${{ steps.new_version.outputs.version }}"
 
-          # Checks if the version name contains the letters 'a' or 'b'
+          # Check if the version ends in 'a' or 'b' + number (e.g. v1.2.3a1)
           if [[ "$VERSION" =~ [ab][0-9]+$ ]]; then
             echo "Detected pre-release tag: $VERSION"
             IS_PRERELEASE=true
-            # Sets the target branch to the PR branch.
-            RELEASE_BRANCH=${{ github.head_ref }}
-
-            echo "Formatted release notes: $FORMATTED_NOTES"
-            echo "formatted_notes=$FORMATTED_NOTES" >> $GITHUB_OUTPUT
+            RELEASE_BRANCH="${{ github.head_ref }}"
           else
+            echo "Detected full release tag: $VERSION"
             IS_PRERELEASE=false
-            RELEASE_BRANCH='main'
+            RELEASE_BRANCH="main"
           fi
 
           echo "Pre-release: $IS_PRERELEASE"
-          is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
           echo "Target branch: $RELEASE_BRANCH"
-          release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
+
+          # Output values for use in later steps
+          echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
 
       - name: Create the release
         id: create_release
