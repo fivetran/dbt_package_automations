@@ -16,10 +16,14 @@ jobs:
           echo "Extracted version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: Get current version from Github (including pre-releases)
+        id: recent_version
+        run: |
+          # Get the latest published release using the GitHub REST API
           RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
             "https://api.github.com/repos/fivetran-catfritz/release_tester/releases")
 
-          RECENT_VERSION=$(echo "$RESPONSE" | jq -r 'map(select(.draft == false)) | sort_by(.created_at) | reverse | .[0].tag_name // empty')
+          version=$(echo "$RESPONSE" | jq -r 'map(select(.draft == false)) | sort_by(.created_at) | reverse | .[0].tag_name // empty')
 
           if [[ -z "$RECENT_VERSION" ]]; then
             echo "No previous release found."
