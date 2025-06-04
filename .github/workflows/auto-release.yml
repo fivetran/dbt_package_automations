@@ -146,19 +146,19 @@ jobs:
           description="${description}\n\n**Full Changelog**: ${compare_url}"
 
           PAYLOAD=$(jq -n \
-            --arg tag_name "$version" \
-            --arg target_commitish "$branch" \
-            --arg name "$title" \
-            --arg body "$description" \
-            --arg draft "$draft" \
-            --arg prerelease "$prerelease" \
+            --arg version "$version" \
+            --arg branch "$branch" \
+            --arg title "$title" \
+            --arg description "$description" \
+            --argjson draft "$draft" \
+            --argjson prerelease "$prerelease" \
             '{
-              tag_name: $tag_name,
-              target_commitish: $target_commitish,
-              name: $name,
-              body: $body,
-              draft: draft,
-              prerelease: prerelease
+              tag_name: $version,
+              target_commitish: $branch,
+              name: $title,
+              body: $description,
+              draft: $draft,
+              prerelease: $prerelease
             }')
 
           echo "Payload: $PAYLOAD"
