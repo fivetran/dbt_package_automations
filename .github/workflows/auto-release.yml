@@ -46,6 +46,7 @@ jobs:
         run: |
           # Use awk to extract the line numbers of the start and end of the changes
           START_LINE=$(awk "/^# .*${{ steps.new_version.outputs.version }}/{print NR+1; exit}" CHANGELOG.md)
+          # This uses different logic if it's the first release of a repo.
           if [[ "${{ steps.most_recent_version.outputs.version }}" == "__none__" ]]; then
             END_LINE=$(wc -l < CHANGELOG.md)
           else
@@ -76,13 +77,16 @@ jobs:
         run: |
           VERSION="${{ steps.new_version.outputs.version }}"
 
+          # Checks if the version name contains the letters 'a' or 'b'
           if [[ "$VERSION" =~ [ab][0-9]+$ ]]; then
             echo "Detected pre-release tag: $VERSION"
             echo "IS_PRERELEASE=true" >> $GITHUB_ENV
+            # Sets the target branch to the PR branch.
             echo "RELEASE_BRANCH=${{ github.head_ref }}" >> $GITHUB_ENV
           else
             echo "Detected full release tag: $VERSION"
             echo "IS_PRERELEASE=false" >> $GITHUB_ENV
+            # Sets the target branch to main..
             echo "RELEASE_BRANCH=main" >> $GITHUB_ENV
           fi
 
@@ -108,9 +112,11 @@ jobs:
             "https://api.github.com/repos/$repo/releases" \
             -d "{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"body\": \"$description\",\"draft\": $draft,\"prerelease\": $prerelease}")
 
+          # Extract the status code from the response
           STATUS_CODE=$(echo "${RESPONSE: -3}")
+          # Print the response for verification
           echo "Response: $RESPONSE"
-
+          # Fail the workflow if the status code is not in the 2xx range
           if [[ "$STATUS_CODE" -lt 200 || "$STATUS_CODE" -ge 300 ]]; then
             echo "Error: GitHub API request failed with status code $STATUS_CODE"
             exit 1
