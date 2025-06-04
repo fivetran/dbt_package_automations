@@ -130,6 +130,12 @@ jobs:
           echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
           echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
 
+      - name: Debug token injection
+        run: |
+          echo "Token starts with: ${token:0:4}****"
+        env:
+          token: ${{ secrets.GH_TOKEN }}
+
       - name: Create the release
         id: create_release
         env:
@@ -145,29 +151,14 @@ jobs:
         run: |
           description="${description}\n\n**Full Changelog**: ${compare_url}"
 
-          PAYLOAD=$(jq -n \
-            --arg version "$version" \
-            --arg branch "$branch" \
-            --arg title "$title" \
-            --arg description "$description" \
-            --argjson draft "$draft" \
-            --argjson prerelease "$prerelease" \
-            '{
-              tag_name: $version,
-              target_commitish: $branch,
-              name: $title,
-              body: $description,
-              draft: $draft,
-              prerelease: $prerelease
-            }')
+          echo the API url being passed: https://api.github.com/repos/$repo/releases
 
-          echo "Payload: $PAYLOAD"
-
-          RESPONSE=$(curl -s -w "%{http_code}" -o response_body.json \
+          RESPONSE=$(curl -X POST \
+            -w "%{http_code}" \
             -H "Authorization: token $token" \
             -H "Accept: application/vnd.github.v3+json" \
-            -X POST "https://api.github.com/repos/$repo/releases" \
-            -d "$PAYLOAD")
+            "https://api.github.com/repos/$repo/releases" \
+            -d "{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"body\": \"$description\",\"draft\": $draft,\"prerelease\": $prerelease}")
 
           # Extract the status code from the response
           STATUS_CODE=$(echo "${RESPONSE: -3}")
