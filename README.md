@@ -268,6 +268,14 @@ It runs when a PR is labeled with `docs:ready` and:
 - Automatically toggles doc-specific variables in `dbt_project.yml` using tags:
   - `@docs-include`: uncommented during doc generation
   - `@docs-ignore`: commented out during doc generation
+  - Example:
+    ```yml
+    vars:
+      # recharge__checkout_enabled: true # @docs-include
+      recharge_source:
+        order: "{{ ref('order_data') }}" # @docs-ignore
+        # recharge_order_identifier: "order_data" # @docs-include
+    ```
 - Copies the generated docs into the root `/docs` folder
 - Commits the updated docs back to the PR branch
 
