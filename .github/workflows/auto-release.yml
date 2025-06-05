@@ -44,28 +44,6 @@ jobs:
             echo "version=$RECENT_VERSION" >> $GITHUB_OUTPUT
           fi
 
-      - name: Get current stable release version from GitHub (NOT including pre-releases)
-        id: current_stable_version
-        run: |
-          # Fetch the latest full release (GitHub automatically excludes pre-releases)
-          RESPONSE=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest)
-
-          STABLE_VERSION=$(echo "$RESPONSE" | jq -r '
-            if type == "object" and .tag_name then
-              .tag_name
-            else
-              empty
-            end
-          ')
-
-          if [[ -z "$STABLE_VERSION" ]]; then
-            echo "No stable release found."
-            echo "version=__none__" >> $GITHUB_OUTPUT
-          else
-            echo "Latest stable release tag: $STABLE_VERSION"
-            echo "version=$STABLE_VERSION" >> $GITHUB_OUTPUT
-          fi
-
       - name: Check version comparison
         id: check_version
         run: |
@@ -141,10 +119,23 @@ jobs:
           prerelease: ${{ steps.release_params.outputs.is_prerelease }}
           repo: ${{ github.repository }}
           token: ${{ secrets.GH_TOKEN }}
-          compare_url: "https://github.com/${{ github.repository }}/compare/${{ steps.current_stable_version.outputs.version }}...${{ steps.new_version.outputs.version }}"
+          current_stable: ${{ steps.current_stable_version.outputs.version }}
+          current_any: ${{ steps.previous_version.outputs.version }}  # can be pre or stable
         run: |
-          # Concatenate the link to the full changelog with the release description
-          description="${description}\n\n**Full Changelog**: ${compare_url}"
+          if [[ "$prerelease" == "true" ]]; then
+            base_version="$current_any"
+          else
+            base_version="$current_stable"
+          fi
+
+          if [[ "$base_version" != "__none__" ]]; then
+            compare_url="https://github.com/${repo}/compare/${base_version}...${version}"
+            echo "Using base version: $base_version"
+            echo "Compare URL: $compare_url"
+            description="${description}\n\n**Full Changelog**: ${compare_url}"
+          else
+            echo "No base version found — skipping changelog link."
+          fi
 
           # Create the release draft using the GitHub API
           RESPONSE=$(curl -X POST \
