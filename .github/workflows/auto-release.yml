@@ -150,14 +150,14 @@ jobs:
             -H "Authorization: token $token" \
             -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/$repo/releases" \
-            -d "{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"draft\": $draft,\"prerelease\": $prerelease,\"body\": \"$description\"}"
+            -d '{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"draft\": $draft,\"prerelease\": $prerelease,\"body\": \"$description\"}'
 
           RESPONSE=$(curl -X POST \
             -w "%{http_code}" \
             -H "Authorization: token $token" \
             -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/$repo/releases" \
-            -d "{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"draft\": $draft,\"prerelease\": $prerelease,\"body\": \"$description\"}")
+            -d '{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"draft\": $draft,\"prerelease\": $prerelease,\"body\": \"$description\"}')
 
           # Extract the status code from the response
           STATUS_CODE=$(echo "${RESPONSE: -3}")
