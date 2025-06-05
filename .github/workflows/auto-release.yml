@@ -151,14 +151,14 @@ jobs:
         run: |
           description="${description}\n\n**Full Changelog**: ${compare_url}"
 
-          echo the API url being passed2: -d "{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"body\": \"$description\",\"draft\": \"$draft\",\"prerelease\": \"$prerelease\"}"
+          echo the API url being passed2: -d "{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"draft\": $draft,\"prerelease\": $prerelease,\"body\": \"$description\"}"
 
           RESPONSE=$(curl -X POST \
             -w "%{http_code}" \
             -H "Authorization: token $token" \
             -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/$repo/releases" \
-            -d "{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"body\": \"$description\",\"draft\": \"$draft\",\"prerelease\": \"$prerelease\"}")
+            -d "{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"draft\": $draft,\"prerelease\": $prerelease,\"body\": \"$description\"}")
 
           # Extract the status code from the response
           STATUS_CODE=$(echo "${RESPONSE: -3}")
