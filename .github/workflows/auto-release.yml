@@ -19,6 +19,20 @@ jobs:
           echo "Extracted version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: Get current version from Github (NOT including pre-releases)
+        id: current_stable_version
+        run: |
+          # Get the latest published release using the GitHub REST API
+          CURRENT_STABLE_VERSION=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/latest" | jq -r '.tag_name')
+
+          if [[ -z "$CURRENT_STABLE_VERSION" ]]; then
+            echo "No previous release found."
+            echo "version=__none__" >> $GITHUB_OUTPUT
+          else
+            echo "Latest release tag (including pre-releases): $CURRENT_STABLE_VERSION"
+            echo "version=$CURRENT_STABLE_VERSION" >> $GITHUB_OUTPUT
+          fi
+
       - name: Get current version from GitHub (including pre-releases)
         id: recent_version
         run: |
