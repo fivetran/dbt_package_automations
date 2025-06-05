@@ -1,4 +1,4 @@
-name: Regen dbt Docs from PR Comment
+name: Regen dbt Docs
 
 on:
   workflow_call:
