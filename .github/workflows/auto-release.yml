@@ -134,7 +134,7 @@ jobs:
           repo: ${{ github.repository }}
           token: ${{ secrets.GH_TOKEN }}
           current_stable: ${{ steps.current_stable_version.outputs.version }}
-          current_any: ${{ steps.previous_version.outputs.version }}  # can be pre or stable
+          current_any: ${{ steps.recent_version.outputs.version }}  # can be pre or stable
         run: |
           if [[ "$prerelease" == "true" ]]; then
             base_version="$current_any"
