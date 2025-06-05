@@ -130,19 +130,13 @@ jobs:
           echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
           echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
 
-      - name: Debug token injection
-        run: |
-          echo "Token starts with: ${token:0:4}****"
-        env:
-          token: ${{ secrets.GH_TOKEN }}
-
       - name: Create the release
         id: create_release
         env:
           version: ${{ steps.new_version.outputs.version }}
           title: ${{ steps.new_version.outputs.version }} ${{ steps.repo_name.outputs.repo_name }}
           description: ${{ steps.format_notes.outputs.formatted_notes }}
-          branch: 'main'
+          branch: ${{ steps.release_params.outputs.release_branch }}
           draft: 'true'
           prerelease: ${{ steps.release_params.outputs.is_prerelease }}
           repo: ${{ github.repository }}
@@ -151,7 +145,12 @@ jobs:
         run: |
           description="${description}\n\n**Full Changelog**: ${compare_url}"
 
-          echo the API url being passed2: -d "{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"draft\": $draft,\"prerelease\": $prerelease,\"body\": \"$description\"}"
+          echo the API url being passed3: curl -X POST \
+            -w "%{http_code}" \
+            -H "Authorization: token $token" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/$repo/releases" \
+            -d "{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"draft\": $draft,\"prerelease\": $prerelease,\"body\": \"$description\"}"
 
           RESPONSE=$(curl -X POST \
             -w "%{http_code}" \
