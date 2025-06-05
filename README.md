@@ -40,6 +40,12 @@ See the specific details for each macros within the contents below.
   - [get_columns_for_macro](#get_columns_for_macro-source)
   - [staging_models_automation](#staging_models_automation-source)
 
+### Bash Scripts
+- [Bash Scripts](#bash-scripts)
+  - [generate_columns](#generate_columns-source)
+  - [generate_docs](#generate_docs-source)
+  - [generate_models](#generate_models-source)
+
 ### GitHub Actions Workflows
 - [GitHub Actions Workflows](#github-actions-workflows)
   - [generate-docs](#generate-docs-source)
