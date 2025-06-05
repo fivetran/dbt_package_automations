@@ -143,27 +143,23 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
           compare_url: "https://github.com/${{ github.repository }}/compare/${{ steps.current_stable_version.outputs.version }}...${{ steps.new_version.outputs.version }}"
         run: |
+          # Concatenate the link to the full changelog with the release description
           description="${description}\n\n**Full Changelog**: ${compare_url}"
 
-          echo the API url being passed3: curl -X POST \
-            -w "%{http_code}" \
-            -H "Authorization: token $token" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/$repo/releases" \
-            -d '{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"draft\": $draft,\"prerelease\": $prerelease,\"body\": \"$description\"}'
-
+          # Create the release draft using the GitHub API
           RESPONSE=$(curl -X POST \
             -w "%{http_code}" \
             -H "Authorization: token $token" \
             -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/$repo/releases" \
-            -d '{"tag_name": "'"$version"'", "target_commitish": "'"$branch"'", "name": "'"$title"'", "body": "'"$description"'", "draft": true, "prerelease": true}'
-          )
+            -d "{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"body\": \"$description\",\"draft\": $draft,\"prerelease\": $prerelease}")
 
           # Extract the status code from the response
           STATUS_CODE=$(echo "${RESPONSE: -3}")
+
           # Print the response for verification
           echo "Response: $RESPONSE"
+
           # Fail the workflow if the status code is not in the 2xx range
           if [[ "$STATUS_CODE" -lt 200 || "$STATUS_CODE" -ge 300 ]]; then
             echo "Error: GitHub API request failed with status code $STATUS_CODE"
