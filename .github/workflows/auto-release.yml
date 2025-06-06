@@ -1,9 +1,6 @@
 name: Auto-Create Release
 on:
   workflow_call:
-    secrets:
-      GH_TOKEN:
-        required: true
 
 jobs:
   update:
