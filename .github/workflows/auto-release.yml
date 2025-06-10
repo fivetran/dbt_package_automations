@@ -12,6 +12,7 @@ jobs:
       - name: Extract new version from changelog
         id: new_version
         run: |
+          # Extract the version number from the changelog file
           VERSION=$(grep -oP 'v[0-9]+.*' CHANGELOG.md | head -1 | tr -d '[:space:]')
           echo "Extracted version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
