@@ -31,7 +31,8 @@ packages:
 ```
 ### Step 2: Using the Automations
 See the specific details for each macros within the contents below.
-## 📋 Contents
+
+## Contents
 ### Automation Macros
 - [Automation Macros](#automation-macros)
   - [generate_columns_macro](#generate_columns_macro-source)
@@ -48,6 +49,7 @@ See the specific details for each macros within the contents below.
 
 ### GitHub Actions Workflows
 - [GitHub Actions Workflows](#github-actions-workflows)
+  - [auto-release](#auto-release-source)
   - [generate-docs](#generate-docs-source)
 
 ### Automation Macros
@@ -258,8 +260,48 @@ With the above example, the script will:
 * Create or update a `stg_apple_search_ads__campaign_history.sql` file in the `models` directory with the pre-filled out `fill_staging_columns` macro.
 
 ### GitHub Actions Workflows
-#### generate-docs ([source](.github/workflows/generate-docs.yml))
 
+#### auto-release ([source](.github/workflows/auto-release.yml))
+
+This reusable workflow automates GitHub release creation by extracting the latest version and notes from the `CHANGELOG.md`, identifying whether the release is stable or a pre-release, and posting a draft release to GitHub with a changelog link.
+
+It is triggered from a package repository via a `pull_request` event when:
+- The PR is **merged**, indicating a stable release
+- Or the PR is **labeled** with `pre-release`, triggering a pre-release
+
+It performs the following:
+- Extracts the latest version from `CHANGELOG.md`
+- Fetches the most recent GitHub release (both stable and pre-release)
+- Skips release creation if the version is unchanged
+- Parses and formats the changelog section between the current and previous release versions
+- Classifies the release as a **pre-release** or **stable** based on version suffix
+- Generates a GitHub compare URL based on:
+  - Previous pre-release (if pre-release)
+  - Last stable release (if stable)
+  - Skips changelog link if no previous version is found
+- Posts a **draft release** using the GitHub REST API
+
+**Usage in a package repo:**
+```yml
+name: 'auto release'
+on:
+  pull_request:
+    types:
+      - closed
+      - labeled
+
+jobs:
+  release:
+    if: |
+      github.event.pull_request.merged == true ||
+      github.event.label.name == 'pre-release'
+    uses: fivetran/dbt_package_automations/.github/workflows/auto-release.yml@main
+    secrets: inherit
+```
+> Requires the changelog to use `# dbt_* vX.Y.Z` format for section headings.
+
+----
+#### generate-docs ([source](.github/workflows/generate-docs.yml))
 This reusable GitHub Actions workflow generates dbt documentation (`catalog.json`, `manifest.json`, `index.html`) based on the integration tests project and commits it to the associated PR branch.
 
 It runs when a PR is labeled with `docs:ready` and:
@@ -295,6 +337,7 @@ jobs:
       schema_var_name: <name of the package's schema variable>
     secrets: inherit
 ```
+
 
 ## How is this package maintained and can I contribute?
 ### Package Maintenance
