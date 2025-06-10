@@ -49,7 +49,6 @@ See the specific details for each macros within the contents below.
 ### GitHub Actions Workflows
 - [GitHub Actions Workflows](#github-actions-workflows)
   - [auto-release](#auto-release-source)
-  - [generate-docs](#generate-docs-source)
 
 ### Automation Macros
 These macros provide the scripts to automate parts of the model creation.
@@ -298,43 +297,6 @@ jobs:
 ```
 > Requires the changelog to use `# dbt_* vX.Y.Z` format for section headings.
 
-#### generate-docs ([source](.github/workflows/generate-docs.yml))
-
-This reusable GitHub Actions workflow generates dbt documentation (`catalog.json`, `manifest.json`, `index.html`) based on the integration tests project and commits it to the associated PR branch.
-
-It runs when a PR is labeled with `docs:ready` and:
-- Spins up a temporary Postgres instance using Docker
-- Seeds and runs the dbt
-- Automatically toggles doc-specific variables in `dbt_project.yml` using tags:
-  - `@docs-include`: uncommented during doc generation
-  - `@docs-ignore`: commented out during doc generation
-  - Example:
-    ```yml
-    vars:
-      # recharge__checkout_enabled: true # @docs-include
-      recharge_source:
-        order: "{{ ref('order_data') }}" # @docs-ignore
-        # recharge_order_identifier: "order_data" # @docs-include
-    ```
-- Copies the generated docs into the root `/docs` folder
-- Commits the updated docs back to the PR branch
-
-**Usage in the package repo:**
-```yml
-name: 'generate dbt docs'
-on:
-  pull_request:
-    types:
-      - labeled
-
-jobs:
-  generate-docs:
-    if: github.event.label.name == 'docs:ready'
-    uses: fivetran/dbt_package_automations/.github/workflows/generate-docs.yml@main
-    with:
-      schema_var_name: <name of the package's schema variable>
-    secrets: inherit
-```
 
 ## How is this package maintained and can I contribute?
 ### Package Maintenance
