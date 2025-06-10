@@ -293,7 +293,7 @@ on:
 jobs:
   release:
     if: |
-      github.event.pull_request.merged == true ||
+      (github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main') ||
       github.event.label.name == 'pre-release'
     uses: fivetran/dbt_package_automations/.github/workflows/auto-release.yml@main
     secrets: inherit
@@ -301,6 +301,7 @@ jobs:
 > Requires the changelog to use `# dbt_* vX.Y.Z` format for section headings.
 
 ----
+
 #### generate-docs ([source](.github/workflows/generate-docs.yml))
 This reusable GitHub Actions workflow generates dbt documentation (`catalog.json`, `manifest.json`, `index.html`) based on the integration tests project and commits it to the associated PR branch.
 
@@ -337,7 +338,6 @@ jobs:
       schema_var_name: <name of the package's schema variable>
     secrets: inherit
 ```
-
 
 ## How is this package maintained and can I contribute?
 ### Package Maintenance
