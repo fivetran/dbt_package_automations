@@ -77,8 +77,6 @@ jobs:
     - name: Toggle doc-specific vars in dbt_project.yml
       working-directory: integration_tests
       run: |
-        cp dbt_project.yml dbt_project.yml.bak
-    
         # Uncomment any line containing @docs-include
         sed -i -E 's/^([[:space:]]*)# ([^#]*)(# .*@docs-include.*)/\1\2\3/' dbt_project.yml
     
@@ -120,11 +118,6 @@ jobs:
         cp integration_tests/target/catalog.json docs/
         cp integration_tests/target/index.html docs/
         cp integration_tests/target/manifest.json docs/
-
-    - name: Restore original dbt_project.yml
-      working-directory: integration_tests
-      if: always()
-      run: mv dbt_project.yml.bak dbt_project.yml
 
     - name: Commit and push docs to PR branch
       run: |
