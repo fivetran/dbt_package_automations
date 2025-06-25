@@ -121,6 +121,11 @@ jobs:
         cp integration_tests/target/index.html docs/
         cp integration_tests/target/manifest.json docs/
 
+    - name: Restore original dbt_project.yml
+      working-directory: integration_tests
+      if: always()
+      run: mv dbt_project.yml.bak dbt_project.yml
+
     - name: Commit and push docs to PR branch
       run: |
         git config --global user.name "github-actions[bot]"
@@ -130,8 +135,3 @@ jobs:
         git push origin "$BRANCH_NAME"
       env:
         BRANCH_NAME: ${{ steps.pr.outputs.branch }}
-
-    - name: Restore original dbt_project.yml
-      working-directory: integration_tests
-      if: always()
-      run: mv dbt_project.yml.bak dbt_project.yml
