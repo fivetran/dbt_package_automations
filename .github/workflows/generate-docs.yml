@@ -54,12 +54,6 @@ jobs:
         pip install --upgrade pip
         pip install dbt-core dbt-postgres
 
-    - name: Set up dbt profile for containerized Postgres
-      run: |
-        mkdir -p ~/.dbt
-        echo "${{ secrets.DBT_PROFILE }}" > ~/.dbt/profiles.yml
-
-
     - name: Checkout PR branch and rebase
       run: |
         git checkout -B $BRANCH_NAME origin/$BRANCH_NAME
@@ -82,6 +76,13 @@ jobs:
         echo "--------- dbt_project.yml ---------"
         cat dbt_project.yml
         echo "-----------------------------------"
+
+    - name: Set up dbt profile for containerized Postgres
+      run: |
+        mkdir -p ~/.dbt
+        echo "$DBT_PROFILES_YML" > ~/.dbt/profiles.yml
+      env:
+        DBT_PROFILES_YML: ${{ secrets.DBT_PROFILE }}
 
     - name: Run dbt docs
       working-directory: integration_tests
