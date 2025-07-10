@@ -54,23 +54,11 @@ jobs:
         pip install --upgrade pip
         pip install dbt-core dbt-postgres
 
-    - name: Set up dbt profile for Dockerized Postgres
+    - name: Set up dbt profile for containerized Postgres
       run: |
         mkdir -p ~/.dbt
-        cat > ~/.dbt/profiles.yml <<EOF
-        integration_tests:
-          target: container
-          outputs:
-            container:
-              type: postgres
-              host: localhost
-              user: postgres
-              password: ""
-              port: 5432
-              dbname: postgres
-              schema: public
-              threads: 1
-        EOF
+        echo "${{ secrets.DBT_PROFILE }}" > ~/.dbt/profiles.yml
+
 
     - name: Checkout PR branch and rebase
       run: |
