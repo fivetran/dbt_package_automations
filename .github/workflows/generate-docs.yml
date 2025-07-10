@@ -25,9 +25,14 @@ jobs:
           --health-retries 5
 
     steps:
-    - name: Log actor
+    - name: Verify caller organization # this should be the first step, or second if wanted after the `log actor` step.
       run: |
-        echo "Triggered by: ${{ github.actor }}"
+        echo "Workflow called by: ${{ github.repository_owner }}/${{ github.repository }}"
+        echo "Allowed organization: fivetran"
+        if [[ "${{ github.repository_owner }}" != "fivetran" ]]; then
+          echo "::error::This workflow can only be called by repositories in the fivetran organization"
+          exit 1
+        fi
 
     - name: Checkout repo
       uses: actions/checkout@v4
