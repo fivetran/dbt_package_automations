@@ -25,7 +25,7 @@ jobs:
           --health-retries 5
 
     steps:
-    - name: Verify caller organization # this should be the first step, or second if wanted after the `log actor` step.
+    - name: Verify caller organization
       run: |
         echo "Workflow called by: ${{ github.repository_owner }}/${{ github.repository }}"
         echo "Allowed organization: fivetran"
