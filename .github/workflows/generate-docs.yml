@@ -1,0 +1,124 @@
+name: Regen dbt Docs
+
+on:
+  workflow_call:
+    inputs:
+      schema_var_name:
+        required: true
+        type: string
+
+jobs:
+  regen-docs:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Verify caller organization
+      run: |
+        echo "Workflow called by: ${{ github.repository_owner }}/${{ github.repository }}"
+        echo "Allowed organization: fivetran"
+        if [[ "${{ github.repository_owner }}" != "fivetran" ]]; then
+          echo "::error::This workflow can only be called by repositories in the fivetran organization"
+          exit 1
+        fi
+
+    - name: Checkout repo
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Get PR branch name
+      id: pr
+      run: |
+        echo "branch=${{ github.event.pull_request.head.ref }}" >> "$GITHUB_OUTPUT"
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dbt
+      run: |
+        pip install --upgrade pip
+        pip install dbt-core dbt-postgres
+
+    - name: Checkout PR branch and rebase
+      run: |
+        git checkout -B $BRANCH_NAME origin/$BRANCH_NAME
+        git pull --rebase origin $BRANCH_NAME
+      env:
+        BRANCH_NAME: ${{ steps.pr.outputs.branch }}
+
+    - name: Toggle doc-specific vars in dbt_project.yml
+      working-directory: integration_tests
+      run: |
+        # Uncomment any line containing @docs-include
+        sed -i -E 's/^([[:space:]]*)# ([^#]*)(# .*@docs-include.*)/\1\2\3/' dbt_project.yml
+    
+        # Comment out any line containing @docs-ignore
+        sed -i -E 's/^([[:space:]]*)([^#][^#]*)(# .*@docs-ignore.*)/\1# \2\3/' dbt_project.yml
+
+    - name: Show modified dbt_project.yml for debugging
+      working-directory: integration_tests
+      run: |
+        echo "--------- dbt_project.yml ---------"
+        cat dbt_project.yml
+        echo "-----------------------------------"
+
+    - name: Set up dbt profile for containerized Postgres
+      run: |
+        mkdir -p ~/.dbt
+        echo "$DBT_PROFILES_YML" > ~/.dbt/profiles.yml
+      env:
+        DBT_PROFILES_YML: ${{ secrets.DBT_PROFILE }}
+
+    - name: Run dbt docs
+      working-directory: integration_tests
+      run: |
+        SCHEMA_VAR_NAME="${{ inputs.schema_var_name }}"
+        VARS_JSON="{$SCHEMA_VAR_NAME: 'public'}"
+        echo "Using vars: $VARS_JSON"
+    
+        REPO_NAME=$(basename "${{ github.repository }}")
+        echo "Running in repo: $REPO_NAME"
+    
+        dbt deps
+        dbt seed --full-refresh
+        dbt run --vars "$VARS_JSON"
+    
+        if [ "$REPO_NAME" = "dbt_dynamics_365_crm" ]; then
+          echo "Running dbt docs with --empty-catalog for $REPO_NAME"
+          dbt docs generate --empty-catalog --vars "$VARS_JSON"
+        else
+          dbt docs generate --vars "$VARS_JSON"
+        fi
+
+    - name: Copy docs to root folder
+      run: |
+        rm -rf docs/*
+        mkdir -p docs
+        cp integration_tests/target/catalog.json docs/
+        cp integration_tests/target/index.html docs/
+        cp integration_tests/target/manifest.json docs/
+
+    - name: Commit and push docs to PR branch
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add docs/
+        git commit -m "Generate dbt docs via GitHub Actions" || echo "No changes to commit"
+        git push origin "$BRANCH_NAME"
+      env:
+        BRANCH_NAME: ${{ steps.pr.outputs.branch }}
