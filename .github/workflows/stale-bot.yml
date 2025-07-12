@@ -1,0 +1,31 @@
+name: "Mark and close stale issues and PRs"
+on:
+  workflow_call:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+env:
+  STALE_ISSUE_MSG: "Hi there! It looks like this issue has been inactive for more than 90 days. To keep this package tidy and ensure we're focusing on active issues, we'll close this in 30 days unless there's further activity. If you'd like to keep it open, please leave a comment. Thanks for your understanding!"
+  STALE_PR_MSG: "Hi there! It looks like this PR has been inactive for more than 90 days. To keep this package tidy and ensure we're focusing on active PRs, we'll close this in 30 days unless there's further activity. If you'd like to keep it open, please leave a comment. Thanks for your understanding!"
+  CLOSE_ISSUE_MSG: "We're closing this issue due to inactivity, but it can easily be reopened if there's renewed interest from the community. Just drop a comment to let the maintainers know. Thanks for your understanding!"
+  CLOSE_PR_MSG: "We're closing this PR due to inactivity, but it can easily be reopened if there's renewed interest from the community. Just drop a comment to let the maintainers know. Thanks for your understanding!"
+
+jobs:
+  stale-awaiting-response:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          stale-issue-message: ${{ env.STALE_ISSUE_MSG }}
+          stale-pr-message: ${{ env.STALE_PR_MSG }}
+          close-issue-message: ${{ env.CLOSE_ISSUE_MSG }}
+          close-pr-message: ${{ env.CLOSE_PR_MSG }}
+          close-issue-reason: ${{ env.CLOSE_ISSUE_REASON }}
+          days-before-stale: 90
+          days-before-close: 30
+          exempt-issue-labels: 'pinned'
+          exempt-pr-labels: 'pinned'
+          stale-issue-label: 'status:stale'
+          stale-pr-label: 'status:stale'
