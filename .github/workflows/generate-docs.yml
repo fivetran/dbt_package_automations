@@ -88,11 +88,20 @@ jobs:
       working-directory: integration_tests
       run: |
         SCHEMA_VAR_NAME="${{ inputs.schema_var_name }}"
-        VARS_JSON="{$SCHEMA_VAR_NAME: 'public'}"
-        echo "Using vars: $VARS_JSON"
     
         REPO_NAME=$(basename "${{ github.repository }}")
         echo "Running in repo: $REPO_NAME"
+
+        # Build vars JSON, with a special rule for salesforce_formula_utils
+        if [ "$REPO_NAME" = "dbt_salesforce_formula_utils" ]; then
+          # Namespace under the package name
+          VARS_JSON="{salesforce_formula_utils: {${SCHEMA_VAR_NAME}: 'public'}}"
+        else
+          # Default: top-level var
+          VARS_JSON="{${SCHEMA_VAR_NAME}: 'public'}"
+        fi
+
+        echo "Using vars: $VARS_JSON"
     
         dbt deps
         dbt seed --full-refresh
