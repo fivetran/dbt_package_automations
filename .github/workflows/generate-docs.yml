@@ -95,7 +95,7 @@ jobs:
         # Build vars JSON, with a special rule for salesforce_formula_utils
         if [ "$REPO_NAME" = "dbt_salesforce_formula_utils" ]; then
           # Namespace under the package name
-          VARS_JSON="{salesforce_formula_integration_tests: {${SCHEMA_VAR_NAME}: 'public'}, salesforce_formula_utils: {${SCHEMA_VAR_NAME}: 'public'}}"
+          VARS_JSON="{${SCHEMA_VAR_NAME}: 'salesforce_formula_integrations_tests'}"
         else
           # Default: top-level var
           VARS_JSON="{${SCHEMA_VAR_NAME}: 'public'}"
