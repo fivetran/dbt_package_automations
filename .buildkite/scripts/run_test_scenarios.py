@@ -20,7 +20,10 @@ def load_scenarios(config_file):
 def run_dbt_command(cmd, cwd=None):
     """Run a dbt command and handle errors"""
     print(f"Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=cwd)
+    # Set consistent terminal width to avoid awkward line breaks
+    env = os.environ.copy()
+    env['COLUMNS'] = '120'
+    result = subprocess.run(cmd, cwd=cwd, env=env)
     if result.returncode != 0:
         print(f"Command failed: {' '.join(cmd)}")
         return False
@@ -66,7 +69,7 @@ def main():
     print(f"Schema variable: {schema_var_name} = {build_schema}")
 
     # Run initial dbt setup commands
-    print(f"\n=== Initial dbt setup ===")
+    print(f"\n🔧 Initial dbt setup")
 
     # dbt deps
     if not run_dbt_command(['dbt', 'deps']):
@@ -80,7 +83,7 @@ def main():
         sys.exit(1)
 
     # dbt compile with schema variables
-    print(f"=== Running dbt compile ===")
+    print(f"🔧 Running dbt compile")
     compile_cmd = ['dbt', 'compile', '--target', target, '--vars', vars_yaml]
     print(f"Running: {' '.join(compile_cmd)}")
     if not run_dbt_command(compile_cmd):
@@ -90,7 +93,7 @@ def main():
 
     # Run test scenarios
     def run_scenario(scenario_vars, scenario_name, include_incremental=False):
-        print(f"\n=== Running {scenario_name} ===")
+        print(f"\n🚀 Running {scenario_name}")
 
         # Build vars dict
         vars_dict = scenario_vars.copy()
@@ -109,7 +112,7 @@ def main():
         print(f"Include incremental: {include_incremental}")
 
         # Always run full refresh first
-        print(f"\n--- Full refresh run ---")
+        print(f"\n  🔄 Full refresh run")
         run_cmd_full = ['dbt', 'run', '--target', target, '--vars', vars_yaml, '--full-refresh']
         test_cmd = ['dbt', 'test', '--target', target, '--vars', vars_yaml]
 
@@ -124,7 +127,7 @@ def main():
 
         # Run incremental if requested
         if include_incremental:
-            print(f"\n--- Incremental run ---")
+            print(f"\n  ⚡ Incremental run")
             run_cmd_incremental = ['dbt', 'run', '--target', target, '--vars', vars_yaml]
 
             if not run_dbt_command(run_cmd_incremental):
@@ -144,7 +147,7 @@ def main():
         include_incremental = scenario.get('include_incremental', False)  # Default to false if not specified
         run_scenario(scenario_vars, f"test scenario {i}", include_incremental)
 
-    print("\n=== All test scenarios completed successfully! ===")
+    print("\n✅ All test scenarios completed successfully!")
 
 
 if __name__ == "__main__":
