@@ -28,21 +28,39 @@ def run_dbt_command(cmd, cwd=None):
 
 
 def main():
-    if len(sys.argv) != 4:
-        print("Usage: run_test_scenarios.py <target> <schema_var_name> <build_schema>")
+    if len(sys.argv) != 3:
+        print("Usage: run_test_scenarios.py <target> <build_schema>")
         sys.exit(1)
 
     target = sys.argv[1]
-    schema_var_name = sys.argv[2]
-    build_schema = sys.argv[3]
+    build_schema = sys.argv[2]
 
     # Load scenarios
     config_file = Path('ci/test_scenarios.yml')
     if not config_file.exists():
         print(f"Error: {config_file} not found")
+        print("Fix: Create a test_scenarios.yml file in the integration_tests/ci/ directory")
+        print("Example content:")
+        print("schema_variable_name: \"your_package_schema_variable\"")
+        print("test_scenarios:")
+        print("  # Add test scenarios here")
+        print("Note: schema_variable_name should be the name of your dbt variable, not the schema itself")
         sys.exit(1)
 
     config = load_scenarios(config_file)
+
+    # Get the name of the dbt variable used to set schema
+    schema_var_name = config.get('schema_variable_name')
+    if not schema_var_name:
+        print("Error: schema_variable_name not found in test_scenarios.yml")
+        print(f"Fix: Add the name of your dbt schema variable to {config_file}")
+        print("Example:")
+        print("schema_variable_name: \"amazon_ads_schema\"")
+        print("test_scenarios:")
+        print("  # Your test scenarios here")
+        print("Note: This should be the name of the dbt variable you use to set the schema,")
+        print("      not the schema name itself (e.g., use 'amazon_ads_schema', not 'my_schema')")
+        sys.exit(1)
 
     print(f"Running test scenarios for target: {target}")
     print(f"Schema variable: {schema_var_name} = {build_schema}")
