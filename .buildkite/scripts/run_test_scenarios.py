@@ -81,7 +81,7 @@ def main():
 
     # dbt compile with schema variables
     print(f"=== Running dbt compile ===")
-    compile_cmd = ['dbt', 'compile', '--target', target, '--vars', vars_yaml]
+    compile_cmd = ['dbt', 'compile', '--target', target, '--full-refresh', '--vars', vars_yaml]
     print(f"Running: {' '.join(compile_cmd)}")
     if not run_dbt_command(compile_cmd):
         print("dbt compile failed")
