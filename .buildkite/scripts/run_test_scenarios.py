@@ -34,7 +34,7 @@ def run_dbt_command(cmd, cwd=None):
         True if command succeeded (return code 0)
         False if command failed (non-zero return code)
     """
-    print(f"Running: {' '.join(cmd)}")
+    print(f"\n=== Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, cwd=cwd)
     if result.returncode != 0:
         print(f"Command failed: {' '.join(cmd)}")
@@ -90,7 +90,7 @@ def main():
         print("      not the schema name itself (e.g., use 'amazon_ads_schema', not 'my_schema')")
         sys.exit(1)
 
-    print(f"Running test scenarios for target: {target}")
+    print(f"\n=== Running test scenarios for target: {target}")
     print(f"Schema variable: {schema_var_name} = {build_schema}")
 
     # === INITIAL DBT SETUP COMMANDS ===
@@ -116,7 +116,7 @@ def main():
     # This catches compilation errors early before attempting to run scenarios
     print(f"=== Running dbt compile ===")
     compile_cmd = ['dbt', 'compile', '--target', target, '--full-refresh', '--vars', vars_yaml]
-    print(f"Running: {' '.join(compile_cmd)}")
+    print(f"\n=== Running: {' '.join(compile_cmd)}")
     if not run_dbt_command(compile_cmd):
         print("dbt compile failed")
         sys.exit(1)
