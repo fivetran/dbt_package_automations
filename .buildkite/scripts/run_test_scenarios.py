@@ -90,12 +90,12 @@ def main():
         print("      not the schema name itself (e.g., use 'amazon_ads_schema', not 'my_schema')")
         sys.exit(1)
 
-    print(f"\n=== Running test scenarios for target: {target}")
+    print(f"\n=== Target: {target}")
     print(f"Schema variable: {schema_var_name} = {build_schema}")
 
     # === INITIAL DBT SETUP COMMANDS ===
     # These commands prepare the dbt environment before running test scenarios
-    print(f"\n=== Initial dbt setup ===")
+    print(f"\n=== dbt setup ===")
 
     # Install dbt package dependencies from packages.yml
     # if not run_dbt_command(...): This checks if the command FAILED
@@ -114,13 +114,13 @@ def main():
 
     # Compile dbt models to verify SQL syntax without running them
     # This catches compilation errors early before attempting to run scenarios
-    print(f"=== Running dbt compile ===")
+    print(f"\n=== Test compile ===")
     compile_cmd = ['dbt', 'compile', '--target', target, '--full-refresh', '--vars', vars_yaml]
-    print(f"\n=== Running: {' '.join(compile_cmd)}")
+    print(f"=== Running: {' '.join(compile_cmd)}")
     if not run_dbt_command(compile_cmd):
         print("dbt compile failed")
         sys.exit(1)
-    print(f"✓ Successful compile")
+    print(f"=== ✓ Successful compile")
 
     # === TEST SCENARIO EXECUTION FUNCTION ===
     # This nested function runs a single test scenario with specific variable configurations
