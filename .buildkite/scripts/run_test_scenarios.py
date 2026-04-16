@@ -116,7 +116,6 @@ def main():
     # This catches compilation errors early before attempting to run scenarios
     print(f"\n=== Test compile ===")
     compile_cmd = ['dbt', 'compile', '--target', target, '--full-refresh', '--vars', vars_yaml]
-    print(f"=== Running: {' '.join(compile_cmd)}")
     if not run_dbt_command(compile_cmd):
         print("dbt compile failed")
         sys.exit(1)
