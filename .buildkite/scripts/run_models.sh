@@ -15,6 +15,11 @@ pip install --upgrade pip setuptools
 echo "Installing dbt adapter: dbt-${1}"
 pip install "dbt-${1}>=1.3.0,<2.0.0"
 
+# Setup dbt configuration
+mkdir -p ~/.dbt
+curl -f -s -o ~/.dbt/profiles.yml \
+    "https://raw.githubusercontent.com/fivetran/dbt_package_automations/refs/heads/feature/buildkite-scripts/.buildkite/scripts/sample.profiles.yml"
+
 cd integration_tests
 
 # Fetch central test scenario script
