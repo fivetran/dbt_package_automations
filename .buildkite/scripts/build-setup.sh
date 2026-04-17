@@ -24,7 +24,6 @@ echo "Build schema: ${BUILD_SCHEMA}"
 mkdir -p ~/.dbt
 curl -f -s -o ~/.dbt/profiles.yml \
     "https://raw.githubusercontent.com/fivetran/dbt_package_automations/refs/heads/feature/buildkite-scripts/.buildkite/scripts/sample.profiles.yml"
-echo "Downloaded centralized profiles configuration"
 
 # Export secrets only for the warehouse needed by this step
 echo "Step key: ${BUILDKITE_STEP_KEY:-unknown}"
