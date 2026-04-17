@@ -2,8 +2,6 @@
 
 set -euo pipefail
 
-echo "🌩️ EXECUTING THE ULTIMATE TESTING SCRIPT 🌩️"
-
 # =============================================================================
 # BUILD SETUP - Schema generation and authentication
 # =============================================================================
@@ -30,6 +28,8 @@ echo "Downloaded centralized profiles configuration"
 
 # Export secrets only for the warehouse needed by this step
 echo "Step key: ${BUILDKITE_STEP_KEY:-unknown}"
+echo "Build number: ${BUILDKITE_BUILD_NUMBER:-unknown}"
+echo "Commit: ${BUILDKITE_COMMIT:-unknown}"
 
 case "${BUILDKITE_STEP_KEY:-}" in
     "run_dbt_bigquery")
@@ -66,6 +66,10 @@ case "${BUILDKITE_STEP_KEY:-}" in
         export CI_DATABRICKS_DBT_TOKEN=$(gcloud secrets versions access latest --secret="CI_DATABRICKS_DBT_TOKEN" --project="dbt-package-testing-363917")
         export CI_DATABRICKS_DBT_CATALOG=$(gcloud secrets versions access latest --secret="CI_DATABRICKS_DBT_CATALOG" --project="dbt-package-testing-363917")
         ;;
+    *)
+        echo "⚠️  WARNING: Unknown step key '${BUILDKITE_STEP_KEY:-}' - no credentials fetched"
+        echo "Available step keys: run_dbt_bigquery, run_dbt_postgres, run_dbt_redshift, run_dbt_snowflake, run_dbt_databricks"
+        ;;
 esac
 
 # =============================================================================
@@ -97,4 +101,4 @@ curl -f -s -o ../.buildkite/scripts/run_test_scenarios.py \
 echo "Executing dbt tests for ${1} with schema ${BUILD_SCHEMA}..."
 python3 ../.buildkite/scripts/run_test_scenarios.py "${1}" "${BUILD_SCHEMA}"
 
-echo "🎯 ALL TESTS COMPLETED SUCCESSFULLY! THE GALAXY IS OURS! 🎯"
+echo "Tests completed successfully"
