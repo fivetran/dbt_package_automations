@@ -58,4 +58,19 @@ case "${BUILDKITE_STEP_KEY:-}" in
         export CI_DATABRICKS_DBT_TOKEN=$(gcloud secrets versions access latest --secret="CI_DATABRICKS_DBT_TOKEN" --project="dbt-package-testing-363917")
         export CI_DATABRICKS_DBT_CATALOG=$(gcloud secrets versions access latest --secret="CI_DATABRICKS_DBT_CATALOG" --project="dbt-package-testing-363917")
         ;;
+    "run_dbt_databricks_sql")
+        echo "Setting up Databricks SQL credentials and dependencies"
+        export CI_DATABRICKS_DBT_HOST=$(gcloud secrets versions access latest --secret="CI_DATABRICKS_SQL_DBT_HOST" --project="dbt-package-testing-363917")
+        export CI_DATABRICKS_DBT_HTTP_PATH=$(gcloud secrets versions access latest --secret="CI_DATABRICKS_SQL_DBT_HTTP_PATH" --project="dbt-package-testing-363917")
+        export CI_DATABRICKS_DBT_TOKEN=$(gcloud secrets versions access latest --secret="CI_DATABRICKS_SQL_DBT_TOKEN" --project="dbt-package-testing-363917")
+        export CI_DATABRICKS_DBT_CATALOG=$(gcloud secrets versions access latest --secret="CI_DATABRICKS_SQL_DBT_CATALOG" --project="dbt-package-testing-363917")
+        ;;
+    "run_dbt_sqlserver")
+        echo "Setting up SQL Server credentials and dependencies"
+        export CI_SQLSERVER_DBT_HOST=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_HOST" --project="dbt-package-testing-363917")
+        export CI_SQLSERVER_DBT_PORT=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_PORT" --project="dbt-package-testing-363917")
+        export CI_SQLSERVER_DBT_USER=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_USER" --project="dbt-package-testing-363917")
+        export CI_SQLSERVER_DBT_PASS=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_PASS" --project="dbt-package-testing-363917")
+        export CI_SQLSERVER_DBT_DATABASE=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_DATABASE" --project="dbt-package-testing-363917")
+        ;;
 esac
