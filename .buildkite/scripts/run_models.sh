@@ -30,7 +30,8 @@ if [ "$1" == "sqlserver" ]; then
     pip install --no-cache-dir --no-binary :all: pyodbc==4.0.39
 
     # odbcinst -j
-
+elif [ "$1" == "databricks-sql" ]; then
+    pip install "dbt-databricks>=1.3.0,<2.0.0"
 else
     # Install specific adapter for this database
     pip install "dbt-${1}>=1.3.0,<2.0.0"
