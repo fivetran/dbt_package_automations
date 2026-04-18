@@ -44,7 +44,7 @@ integration_tests:
       host: "{{ env_var('CI_DATABRICKS_DBT_HOST') }}"
       http_path: "{{ env_var('CI_DATABRICKS_DBT_HTTP_PATH') }}"
       schema: "{{ env_var('BUILD_SCHEMA') }}"
-      threads: 1
+      threads: 8
       token: "{{ env_var('CI_DATABRICKS_DBT_TOKEN') }}"
       type: databricks
     databricks-sql:
@@ -52,7 +52,7 @@ integration_tests:
       host: "{{ env_var('CI_DATABRICKS_DBT_HOST') }}"
       http_path: "{{ env_var('CI_DATABRICKS_SQL_DBT_HTTP_PATH') }}"
       schema: "{{ env_var('BUILD_SCHEMA') }}"
-      threads: 1
+      threads: 8
       token: "{{ env_var('CI_DATABRICKS_SQL_DBT_TOKEN') }}"
       type: databricks
     sqlserver:
