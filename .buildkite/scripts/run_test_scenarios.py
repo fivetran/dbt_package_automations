@@ -197,6 +197,14 @@ def main():
     # Run additional test scenarios defined in the YAML configuration
     # Each scenario can have custom variables, names, and incremental testing settings
     for i, scenario in enumerate(config.get('test_scenarios', []), 2):
+        # Check if scenario is allowed for this warehouse
+        allowed_warehouses = scenario.get('warehouses', None)
+        if allowed_warehouses and target not in allowed_warehouses:
+            base_name = scenario.get('name', f'scenario {i}')
+            print(f"\n=== Skipping test: {base_name} ===")
+            print(f"Not configured for {target} (test only runs on: {', '.join(allowed_warehouses)})")
+            continue
+
         scenario_vars = scenario.get('vars', {})  # Custom variables for this scenario
         include_incremental = scenario.get('include_incremental', False)  # Whether to test incremental runs
         # Add "test:" prefix to scenario name (avoid double "test" for default names)
