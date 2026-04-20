@@ -11,7 +11,7 @@ python3 -m venv venv
 . venv/bin/activate
 pip install --upgrade pip setuptools
 
-echo "Installing dbt adapter: dbt-${1}"
+echo "Installing dbt adapter for ${1}"
 if [ "$1" == "sqlserver" ]; then
     pip install -r integration_tests/requirements_sqlserver.txt
 
@@ -30,10 +30,21 @@ if [ "$1" == "sqlserver" ]; then
     pip install --no-cache-dir --no-binary :all: pyodbc==4.0.39
 
     # odbcinst -j
+elif [ "$1" == "snowflake" ]; then
+    pip install "dbt-snowflake>=1.3.0,<2.0.0"
+elif [ "$1" == "bigquery" ]; then
+    pip install "dbt-bigquery>=1.3.0,<2.0.0"
+elif [ "$1" == "postgres" ]; then
+    pip install "dbt-postgres>=1.3.0,<2.0.0"
+elif [ "$1" == "redshift" ]; then
+    pip install "dbt-redshift>=1.3.0,<2.0.0"
+elif [ "$1" == "databricks" ]; then
+    pip install "dbt-databricks>=1.3.0,<2.0.0"
 elif [ "$1" == "databricks-sql" ]; then
     pip install "dbt-databricks>=1.3.0,<2.0.0"
 else
-    # Install specific adapter for this database
+    # Fallback
+    echo "Using generic adapter installation for: dbt-${1}"
     pip install "dbt-${1}>=1.3.0,<2.0.0"
 fi
 
