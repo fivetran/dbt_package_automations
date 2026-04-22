@@ -4,7 +4,7 @@ env:
 steps:
   - label: ":postgres: Run Tests - Postgres"
     key: "run_dbt_postgres"
-    if: 1=1
+    if: 1==1
     retry:
       automatic:
         - exit_status: -1  # Timeout
@@ -23,7 +23,7 @@ steps:
 
   - label: ":snowflake-db: Run Tests - Snowflake"
     key: "run_dbt_snowflake"
-    if: 1=0
+    if: 1==0
     retry:
       automatic:
         - exit_status: -1  # Timeout
@@ -42,7 +42,7 @@ steps:
 
   - label: ":gcloud: Run Tests - BigQuery"
     key: "run_dbt_bigquery"
-    if: 1=0
+    if: 1==0
     retry:
       automatic:
         - exit_status: -1  # Timeout
@@ -61,7 +61,7 @@ steps:
 
   - label: ":amazon-redshift: Run Tests - Redshift"
     key: "run_dbt_redshift"
-    if: 1=0
+    if: 1==0
     concurrency: 3
     concurrency_group: "warehouse/redshift"
     retry:
@@ -82,7 +82,7 @@ steps:
 
   - label: ":databricks: Run Tests - Databricks"
     key: "run_dbt_databricks"
-    if: 1=0
+    if: 1==0
     retry:
       automatic:
         - exit_status: -1  # Timeout
@@ -101,7 +101,7 @@ steps:
 
   - label: ":databricks: :database: Run Tests - Databricks SQL"
     key: "run_dbt_databricks_sql"
-    if: 1=0
+    if: 1==0
     retry:
       automatic:
         - exit_status: -1  # Timeout
@@ -120,7 +120,7 @@ steps:
 
   - label: ":azure: Run Tests - SQL Server"
     key: "run_dbt_sqlserver"
-    if: 1=0
+    if: 1==0
     retry:
       automatic:
         - exit_status: -1  # Timeout
