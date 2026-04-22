@@ -143,10 +143,7 @@ def main():
         # Convert Python dict to dbt YAML variable format: {key1: value1, key2: value2}
         vars_yaml_parts = []
         for key, value in vars_dict.items():
-            if isinstance(value, str):
-                vars_yaml_parts.append(f"{key}: {value}")
-            else:
-                vars_yaml_parts.append(f"{key}: {value}")
+            vars_yaml_parts.append(f"{key}: {value}")
         vars_yaml = f"{{{', '.join(vars_yaml_parts)}}}"
         print(f"Variables: {vars_yaml}")
         print(f"Include incremental: {include_incremental}")
