@@ -4,7 +4,7 @@ env:
 steps:
   - label: ":postgres: Run Tests - Postgres"
     key: "run_dbt_postgres"
-    if: "$(grep -q 'postgres: true' integration_tests/ci/test_scenarios.yml && echo 'true' || echo 'false') == 'true'"
+    if: build.env("TEST_POSTGRES") == "true"
     retry:
       automatic:
         - exit_status: -1  # Timeout
@@ -23,7 +23,7 @@ steps:
 
   - label: ":snowflake-db: Run Tests - Snowflake"
     key: "run_dbt_snowflake"
-    if: "$(grep -q 'snowflake: true' integration_tests/ci/test_scenarios.yml && echo 'true' || echo 'false') == 'true'"
+    if: build.env("TEST_SNOWFLAKE") == "true"
     retry:
       automatic:
         - exit_status: -1  # Timeout
