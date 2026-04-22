@@ -8,40 +8,10 @@ BUILD_NUMBER=$BUILDKITE_BUILD_NUMBER
 COMMIT_SHA=${BUILDKITE_COMMIT:0:7}
 PREFIX="zz_bk_integration_tests"
 if [[ "$BUILDKITE_STEP_KEY" == "run_dbt_databricks_sql" ]]; then PREFIX="${PREFIX}_sql"; fi
-BUILD_SCHEMA="${PREFIX}_${COMMIT_SHA}_${BUILD_NUMBER}"
+BUILD_SCHEMA="${PREFIX}_${COMMIT_SHA}_${BUILD_NUMBER}_$1"
 
 export BUILD_SCHEMA
 echo "Build schema: ${BUILD_SCHEMA}"
-
-# Export secrets for Docker containers from Google Cloud Secret Manager
-echo "Fetching database credentials from Secret Manager..."
-export GCLOUD_SERVICE_KEY=$(gcloud secrets versions access latest --secret="GCLOUD_SERVICE_KEY" --project="dbt-package-testing-363917")
-export CI_POSTGRES_DBT_HOST=$(gcloud secrets versions access latest --secret="CI_POSTGRES_DBT_HOST" --project="dbt-package-testing-363917")
-export CI_POSTGRES_DBT_USER=$(gcloud secrets versions access latest --secret="CI_POSTGRES_DBT_USER" --project="dbt-package-testing-363917")
-export CI_POSTGRES_DBT_PASS=$(gcloud secrets versions access latest --secret="CI_POSTGRES_DBT_PASS" --project="dbt-package-testing-363917")
-export CI_POSTGRES_DBT_DBNAME=$(gcloud secrets versions access latest --secret="CI_POSTGRES_DBT_DBNAME" --project="dbt-package-testing-363917")
-export CI_REDSHIFT_DBT_DBNAME=$(gcloud secrets versions access latest --secret="CI_REDSHIFT_DBT_DBNAME" --project="dbt-package-testing-363917")
-export CI_REDSHIFT_DBT_HOST=$(gcloud secrets versions access latest --secret="CI_REDSHIFT_DBT_HOST" --project="dbt-package-testing-363917")
-export CI_REDSHIFT_DBT_PASS=$(gcloud secrets versions access latest --secret="CI_REDSHIFT_DBT_PASS" --project="dbt-package-testing-363917")
-export CI_REDSHIFT_DBT_USER=$(gcloud secrets versions access latest --secret="CI_REDSHIFT_DBT_USER" --project="dbt-package-testing-363917")
-export CI_SNOWFLAKE_DBT_ACCOUNT=$(gcloud secrets versions access latest --secret="CI_SNOWFLAKE_DBT_ACCOUNT" --project="dbt-package-testing-363917")
-export CI_SNOWFLAKE_DBT_DATABASE=$(gcloud secrets versions access latest --secret="CI_SNOWFLAKE_DBT_DATABASE" --project="dbt-package-testing-363917")
-export CI_SNOWFLAKE_DBT_PASS=$(gcloud secrets versions access latest --secret="CI_SNOWFLAKE_DBT_PASS" --project="dbt-package-testing-363917")
-export CI_SNOWFLAKE_DBT_ROLE=$(gcloud secrets versions access latest --secret="CI_SNOWFLAKE_DBT_ROLE" --project="dbt-package-testing-363917")
-export CI_SNOWFLAKE_DBT_USER=$(gcloud secrets versions access latest --secret="CI_SNOWFLAKE_DBT_USER" --project="dbt-package-testing-363917")
-export CI_SNOWFLAKE_DBT_WAREHOUSE=$(gcloud secrets versions access latest --secret="CI_SNOWFLAKE_DBT_WAREHOUSE" --project="dbt-package-testing-363917")
-export CI_DATABRICKS_DBT_HOST=$(gcloud secrets versions access latest --secret="CI_DATABRICKS_DBT_HOST" --project="dbt-package-testing-363917")
-export CI_DATABRICKS_DBT_HTTP_PATH=$(gcloud secrets versions access latest --secret="CI_DATABRICKS_DBT_HTTP_PATH" --project="dbt-package-testing-363917")
-export CI_DATABRICKS_DBT_TOKEN=$(gcloud secrets versions access latest --secret="CI_DATABRICKS_DBT_TOKEN" --project="dbt-package-testing-363917")
-export CI_DATABRICKS_DBT_CATALOG=$(gcloud secrets versions access latest --secret="CI_DATABRICKS_DBT_CATALOG" --project="dbt-package-testing-363917")
-export CI_DATABRICKS_SQL_DBT_HTTP_PATH=$(gcloud secrets versions access latest --secret="CI_DATABRICKS_SQL_DBT_HTTP_PATH" --project="dbt-package-testing-363917")
-export CI_DATABRICKS_SQL_DBT_TOKEN=$(gcloud secrets versions access latest --secret="CI_DATABRICKS_SQL_DBT_TOKEN" --project="dbt-package-testing-363917")
-export CI_SQLSERVER_DBT_SERVER=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_SERVER" --project="dbt-package-testing-363917")
-export CI_SQLSERVER_DBT_DATABASE=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_DATABASE" --project="dbt-package-testing-363917")
-export CI_SQLSERVER_DBT_USER=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_USER" --project="dbt-package-testing-363917")
-export CI_SQLSERVER_DBT_PASS=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_PASS" --project="dbt-package-testing-363917")
-
-echo "Environment setup complete."
 
 # Install system dependencies
 apt-get update

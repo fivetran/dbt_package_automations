@@ -62,3 +62,115 @@ if [[ "$WAREHOUSES" == *snowflake* ]]; then
       curl -s "${RUN_MODELS_URL}" | bash -s snowflake
 YAML
 fi
+
+if [[ "$WAREHOUSES" == *bigquery* ]]; then
+  cat >> .buildkite/pipeline.yml <<'YAML'
+  - label: ":gcloud: Run Tests - BigQuery"
+    key: "run_dbt_bigquery"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: ["/bin/bash", "-e", "-c"]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
+    commands: |
+      curl -s "${RUN_MODELS_URL}" | bash -s bigquery
+YAML
+fi
+
+if [[ "$WAREHOUSES" == *redshift* ]]; then
+  cat >> .buildkite/pipeline.yml <<'YAML'
+  - label: ":amazon-redshift: Run Tests - Redshift"
+    key: "run_dbt_redshift"
+    concurrency: 3
+    concurrency_group: "warehouse/redshift"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: ["/bin/bash", "-e", "-c"]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
+    commands: |
+      curl -s "${RUN_MODELS_URL}" | bash -s redshift
+YAML
+fi
+
+if [[ "$WAREHOUSES" == *databricks* ]]; then
+  cat >> .buildkite/pipeline.yml <<'YAML'
+  - label: ":databricks: Run Tests - Databricks"
+    key: "run_dbt_databricks"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: ["/bin/bash", "-e", "-c"]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
+    commands: |
+      curl -s "${RUN_MODELS_URL}" | bash -s databricks
+YAML
+fi
+
+if [[ "$WAREHOUSES" == *databricks_sql* ]]; then
+  cat >> .buildkite/pipeline.yml <<'YAML'
+  - label: ":databricks: :database: Run Tests - Databricks SQL"
+    key: "run_dbt_databricks_sql"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: ["/bin/bash", "-e", "-c"]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
+    commands: |
+      curl -s "${RUN_MODELS_URL}" | bash -s databricks-sql
+YAML
+fi
+
+if [[ "$WAREHOUSES" == *sqlserver* ]]; then
+  cat >> .buildkite/pipeline.yml <<'YAML'
+  - label: ":azure: Run Tests - SQL Server"
+    key: "run_dbt_sqlserver"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: ["/bin/bash", "-e", "-c"]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
+    commands: |
+      curl -s "${RUN_MODELS_URL}" | bash -s sqlserver
+YAML
+fi
