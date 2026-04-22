@@ -14,7 +14,7 @@ steps:
 
   - label: ":postgres: Run Tests - Postgres"
     key: "run_dbt_postgres"
-    if: build.env("ENABLED_WAREHOUSES") == "postgres,snowflake"
+    if: build.env("ENABLED_WAREHOUSES") matches "postgres"
     retry:
       automatic:
         - exit_status: -1  # Timeout
@@ -33,7 +33,7 @@ steps:
 
   - label: ":snowflake-db: Run Tests - Snowflake"
     key: "run_dbt_snowflake"
-    if: build.env("ENABLED_WAREHOUSES") =~ /snowflake/
+    if: build.env("ENABLED_WAREHOUSES") matches "snowflake"
     retry:
       automatic:
         - exit_status: -1  # Timeout
