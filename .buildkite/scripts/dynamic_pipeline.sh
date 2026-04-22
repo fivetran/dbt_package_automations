@@ -24,6 +24,10 @@ steps:
             - "BUILDKITE_BUILD_NUMBER"
             - "BUILDKITE_COMMIT"
             - "BUILDKITE_STEP_KEY"
+            - "CI_POSTGRES_DBT_HOST"
+            - "CI_POSTGRES_DBT_USER"
+            - "CI_POSTGRES_DBT_PASS"
+            - "CI_POSTGRES_DBT_DBNAME"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s postgres
 
@@ -42,6 +46,12 @@ steps:
             - "BUILDKITE_BUILD_NUMBER"
             - "BUILDKITE_COMMIT"
             - "BUILDKITE_STEP_KEY"
+            - "CI_SNOWFLAKE_DBT_ACCOUNT"
+            - "CI_SNOWFLAKE_DBT_DATABASE"
+            - "CI_SNOWFLAKE_DBT_PASS"
+            - "CI_SNOWFLAKE_DBT_ROLE"
+            - "CI_SNOWFLAKE_DBT_USER"
+            - "CI_SNOWFLAKE_DBT_WAREHOUSE"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s snowflake
 
@@ -60,6 +70,7 @@ steps:
             - "BUILDKITE_BUILD_NUMBER"
             - "BUILDKITE_COMMIT"
             - "BUILDKITE_STEP_KEY"
+            - "GCLOUD_SERVICE_KEY"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s bigquery
 
@@ -80,6 +91,10 @@ steps:
             - "BUILDKITE_BUILD_NUMBER"
             - "BUILDKITE_COMMIT"
             - "BUILDKITE_STEP_KEY"
+            - "CI_REDSHIFT_DBT_DBNAME"
+            - "CI_REDSHIFT_DBT_HOST"
+            - "CI_REDSHIFT_DBT_PASS"
+            - "CI_REDSHIFT_DBT_USER"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s redshift
 
@@ -98,6 +113,10 @@ steps:
             - "BUILDKITE_BUILD_NUMBER"
             - "BUILDKITE_COMMIT"
             - "BUILDKITE_STEP_KEY"
+            - "CI_DATABRICKS_DBT_HOST"
+            - "CI_DATABRICKS_DBT_HTTP_PATH"
+            - "CI_DATABRICKS_DBT_TOKEN"
+            - "CI_DATABRICKS_DBT_CATALOG"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s databricks
 YAML
@@ -119,6 +138,10 @@ if [[ "$INCLUDE_DATABRICKS_SQL" == "true" ]]; then
             - "BUILDKITE_BUILD_NUMBER"
             - "BUILDKITE_COMMIT"
             - "BUILDKITE_STEP_KEY"
+            - "CI_DATABRICKS_DBT_HOST"
+            - "CI_DATABRICKS_SQL_DBT_HTTP_PATH"
+            - "CI_DATABRICKS_SQL_DBT_TOKEN"
+            - "CI_DATABRICKS_DBT_CATALOG"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s databricks-sql
 YAML
@@ -141,6 +164,10 @@ if [[ "$INCLUDE_SQLSERVER" == "true" ]]; then
             - "BUILDKITE_BUILD_NUMBER"
             - "BUILDKITE_COMMIT"
             - "BUILDKITE_STEP_KEY"
+            - "CI_SQLSERVER_DBT_SERVER"
+            - "CI_SQLSERVER_DBT_DATABASE"
+            - "CI_SQLSERVER_DBT_USER"
+            - "CI_SQLSERVER_DBT_PASS"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s sqlserver
 YAML
