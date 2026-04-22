@@ -1,26 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-WAREHOUSES="${ENABLED_WAREHOUSES:-}"
+INCLUDE_DATABRICKS_SQL="${INCLUDE_DATABRICKS_SQL:-false}"
+INCLUDE_SQLSERVER="${INCLUDE_SQLSERVER:-false}"
 
 cat > .buildkite/pipeline.yml <<'YAML'
 env:
   RUN_MODELS_URL: "https://raw.githubusercontent.com/fivetran/dbt_package_automations/refs/heads/feature/centralized-bk/.buildkite/scripts/run_models.sh"
 
 steps:
-  - label: ":bug: Debug Environment Variables"
-    key: "debug_env"
-    command: |
-      echo "=== Environment Variables Debug ==="
-      echo "ENABLED_WAREHOUSES: ${ENABLED_WAREHOUSES:-'(not set)'}"
-      echo "BUILDKITE_BUILD_NUMBER: ${BUILDKITE_BUILD_NUMBER:-'(not set)'}"
-      echo "BUILDKITE_COMMIT: ${BUILDKITE_COMMIT:-'(not set)'}"
-      echo "BUILDKITE_STEP_KEY: ${BUILDKITE_STEP_KEY:-'(not set)'}"
-      echo "=================================="
-YAML
-
-if [[ "$WAREHOUSES" == *postgres* ]]; then
-  cat >> .buildkite/pipeline.yml <<'YAML'
   - label: ":postgres: Run Tests - Postgres"
     key: "run_dbt_postgres"
     retry:
@@ -38,11 +26,7 @@ if [[ "$WAREHOUSES" == *postgres* ]]; then
             - "BUILDKITE_STEP_KEY"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s postgres
-YAML
-fi
 
-if [[ "$WAREHOUSES" == *snowflake* ]]; then
-  cat >> .buildkite/pipeline.yml <<'YAML'
   - label: ":snowflake-db: Run Tests - Snowflake"
     key: "run_dbt_snowflake"
     retry:
@@ -60,11 +44,7 @@ if [[ "$WAREHOUSES" == *snowflake* ]]; then
             - "BUILDKITE_STEP_KEY"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s snowflake
-YAML
-fi
 
-if [[ "$WAREHOUSES" == *bigquery* ]]; then
-  cat >> .buildkite/pipeline.yml <<'YAML'
   - label: ":gcloud: Run Tests - BigQuery"
     key: "run_dbt_bigquery"
     retry:
@@ -82,11 +62,7 @@ if [[ "$WAREHOUSES" == *bigquery* ]]; then
             - "BUILDKITE_STEP_KEY"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s bigquery
-YAML
-fi
 
-if [[ "$WAREHOUSES" == *redshift* ]]; then
-  cat >> .buildkite/pipeline.yml <<'YAML'
   - label: ":amazon-redshift: Run Tests - Redshift"
     key: "run_dbt_redshift"
     concurrency: 3
@@ -106,11 +82,7 @@ if [[ "$WAREHOUSES" == *redshift* ]]; then
             - "BUILDKITE_STEP_KEY"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s redshift
-YAML
-fi
 
-if [[ "$WAREHOUSES" == *databricks* ]]; then
-  cat >> .buildkite/pipeline.yml <<'YAML'
   - label: ":databricks: Run Tests - Databricks"
     key: "run_dbt_databricks"
     retry:
@@ -129,9 +101,8 @@ if [[ "$WAREHOUSES" == *databricks* ]]; then
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s databricks
 YAML
-fi
 
-if [[ "$WAREHOUSES" == *databricks_sql* ]]; then
+if [[ "$INCLUDE_DATABRICKS_SQL" == "true" ]]; then
   cat >> .buildkite/pipeline.yml <<'YAML'
   - label: ":databricks: :database: Run Tests - Databricks SQL"
     key: "run_dbt_databricks_sql"
@@ -153,7 +124,7 @@ if [[ "$WAREHOUSES" == *databricks_sql* ]]; then
 YAML
 fi
 
-if [[ "$WAREHOUSES" == *sqlserver* ]]; then
+if [[ "$INCLUDE_SQLSERVER" == "true" ]]; then
   cat >> .buildkite/pipeline.yml <<'YAML'
   - label: ":azure: Run Tests - SQL Server"
     key: "run_dbt_sqlserver"
