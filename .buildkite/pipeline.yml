@@ -14,7 +14,7 @@ steps:
 
   - label: ":postgres: Run Tests - Postgres"
     key: "run_dbt_postgres"
-    if: 'build.env("ENABLED_WAREHOUSES") == "postgres"'
+    if: build.env("ENABLED_WAREHOUSES") includes "postgres"
     retry:
       automatic:
         - exit_status: -1  # Timeout
@@ -33,7 +33,7 @@ steps:
 
   - label: ":snowflake-db: Run Tests - Snowflake"
     key: "run_dbt_snowflake"
-    if: 'build.env("ENABLED_WAREHOUSES") == "snowflake"'
+    if: build.env("ENABLED_WAREHOUSES") includes "snowflake"
     retry:
       automatic:
         - exit_status: -1  # Timeout
@@ -52,7 +52,7 @@ steps:
 
   - label: ":gcloud: Run Tests - BigQuery"
     key: "run_dbt_bigquery"
-    if: 'build.env("ENABLED_WAREHOUSES") =~ /bigquery/'
+    if: 'build.env("ENABLED_WAREHOUSES") includes "bigquery"'
     retry:
       automatic:
         - exit_status: -1  # Timeout
@@ -71,7 +71,7 @@ steps:
 
   - label: ":amazon-redshift: Run Tests - Redshift"
     key: "run_dbt_redshift"
-    if: 'build.env("ENABLED_WAREHOUSES") =~ /redshift/'
+    if: 'build.env("ENABLED_WAREHOUSES") includes "redshift"'
     concurrency: 3
     concurrency_group: "warehouse/redshift"
     retry:
@@ -92,7 +92,7 @@ steps:
 
   - label: ":databricks: Run Tests - Databricks"
     key: "run_dbt_databricks"
-    if: 'build.env("ENABLED_WAREHOUSES") =~ /databricks/'
+    if: 'build.env("ENABLED_WAREHOUSES") includes "databricks"'
     retry:
       automatic:
         - exit_status: -1  # Timeout
@@ -111,7 +111,7 @@ steps:
 
   - label: ":databricks: :database: Run Tests - Databricks SQL"
     key: "run_dbt_databricks_sql"
-    if: 'build.env("ENABLED_WAREHOUSES") =~ /databricks_sql/'
+    if: 'build.env("ENABLED_WAREHOUSES") includes "databricks_sql"'
     retry:
       automatic:
         - exit_status: -1  # Timeout
@@ -130,7 +130,7 @@ steps:
 
   - label: ":azure: Run Tests - SQL Server"
     key: "run_dbt_sqlserver"
-    if: 'build.env("ENABLED_WAREHOUSES") =~ /sqlserver/'
+    if: 'build.env("ENABLED_WAREHOUSES") includes "sqlserver"'
     retry:
       automatic:
         - exit_status: -1  # Timeout
