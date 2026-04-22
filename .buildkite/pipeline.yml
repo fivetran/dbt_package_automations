@@ -1,0 +1,117 @@
+env:
+  RUN_MODELS_URL: "https://raw.githubusercontent.com/fivetran/dbt_package_automations/refs/heads/feature/centralized-bk/.buildkite/scripts/run_models.sh"
+
+steps:
+  - label: ":postgres: Run Tests - Postgres"
+    key: "run_dbt_postgres"
+    if: build.env("TEST_POSTGRES") == "true"
+    retry:
+      automatic:
+        - exit_status: -1  # Timeout
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: [ "/bin/bash", "-e", "-c" ]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+    commands: |
+      curl -s "${RUN_MODELS_URL}" | bash -s postgres 
+
+  - label: ":snowflake-db: Run Tests - Snowflake"
+    key: "run_dbt_snowflake"
+    if: build.env("TEST_SNOWFLAKE") == "true"
+    retry:
+      automatic:
+        - exit_status: -1  # Timeout
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: [ "/bin/bash", "-e", "-c" ]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+    commands: |
+      curl -s "${RUN_MODELS_URL}" | bash -s snowflake
+
+  - label: ":gcloud: Run Tests - BigQuery"
+    key: "run_dbt_bigquery"
+    if: build.env("TEST_BIGQUERY") == "true"
+    retry:
+      automatic:
+        - exit_status: -1  # Timeout
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: [ "/bin/bash", "-e", "-c" ]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+    commands: |
+      curl -s "${RUN_MODELS_URL}" | bash -s bigquery
+
+  - label: ":amazon-redshift: Run Tests - Redshift"
+    key: "run_dbt_redshift"
+    if: build.env("TEST_REDSHIFT") == "true"
+    concurrency: 3
+    concurrency_group: "warehouse/redshift"
+    retry:
+      automatic:
+        - exit_status: -1  # Timeout
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: [ "/bin/bash", "-e", "-c" ]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+    commands: |
+      curl -s "${RUN_MODELS_URL}" | bash -s redshift
+
+  - label: ":databricks: Run Tests - Databricks"
+    key: "run_dbt_databricks"
+    if: build.env("TEST_DATABRICKS") == "true"
+    retry:
+      automatic:
+        - exit_status: -1  # Timeout
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: [ "/bin/bash", "-e", "-c" ]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+    commands: |
+      curl -s "${RUN_MODELS_URL}" | bash -s databricks
+
+  - label: ":databricks: :database: Run Tests - Databricks SQL"
+    key: "run_dbt_databricks_sql"
+    if: build.env("TEST_DATABRICKS_SQL") == "true"
+    retry:
+      automatic:
+        - exit_status: -1  # Timeout
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: [ "/bin/bash", "-e", "-c" ]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+    commands: |
+      curl -s "${RUN_MODELS_URL}" | bash -s databricks-sql
+
+  - label: ":azure: Run Tests - SQL Server"
+    key: "run_dbt_sqlserver"
+    if: build.env("TEST_SQLSERVER") == "true"
+    retry:
+      automatic:
+        - exit_status: -1  # Timeout
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: [ "/bin/bash", "-e", "-c" ]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+    commands: |
+      curl -s "${RUN_MODELS_URL}" | bash -s sqlserver

@@ -19,8 +19,23 @@ def load_scenarios(config_file):
     - schema_variable_name: The dbt variable name used for setting schema
     - test_scenarios: List of scenarios with different variable configurations
     """
-    with open(config_file, 'r') as f:
-        return yaml.safe_load(f)
+    try:
+        with open(config_file, 'r') as f:
+            return yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        print(f"Error: Malformed YAML in {config_file}")
+        print(f"YAML parsing error: {e}")
+        print("Fix: Check YAML syntax (indentation, colons, quotes)")
+        print("Common issues:")
+        print("  - Inconsistent indentation (mix of spaces/tabs)")
+        print("  - Missing colons after keys")
+        print("  - Unquoted strings with special characters")
+        print("  - Missing quotes around string values")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: Could not read {config_file}")
+        print(f"Error details: {e}")
+        sys.exit(1)
 
 
 def run_dbt_command(cmd, cwd=None):
