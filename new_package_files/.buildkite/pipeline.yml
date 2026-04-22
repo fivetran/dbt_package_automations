@@ -2,19 +2,9 @@
 #
 # Template for new dbt packages using centralized infrastructure.
 # 1. Update the package name in the header comment above
-# 2. Configure TEST_* flags below for your supported warehouses
+# 2. Configure TEST_* flags in your pre-command hook for supported warehouses
 # 3. Create integration_tests/ci/test_scenarios.yml for your package
 # 4. That's it! Secrets, environment variables, and testing are all automated.
-
-env:
-  # Configure which warehouse tests to run (true/false)
-  TEST_POSTGRES: true          # PostgreSQL
-  TEST_SNOWFLAKE: true         # Snowflake
-  TEST_BIGQUERY: false         # Google BigQuery
-  TEST_REDSHIFT: false         # Amazon Redshift
-  TEST_DATABRICKS: false       # Databricks
-  TEST_DATABRICKS_SQL: false   # Databricks SQL Warehouse
-  TEST_SQLSERVER: false        # SQL Server
 
 steps:
   - label: ":gear: Load Central Pipeline"
