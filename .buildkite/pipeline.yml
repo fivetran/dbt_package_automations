@@ -15,6 +15,9 @@ steps:
           shell: [ "/bin/bash", "-e", "-c" ]
           environment:
             - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s postgres 
 
@@ -31,6 +34,9 @@ steps:
           shell: [ "/bin/bash", "-e", "-c" ]
           environment:
             - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s snowflake
 
@@ -47,6 +53,9 @@ steps:
           shell: [ "/bin/bash", "-e", "-c" ]
           environment:
             - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s bigquery
 
@@ -65,6 +74,9 @@ steps:
           shell: [ "/bin/bash", "-e", "-c" ]
           environment:
             - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s redshift
 
@@ -81,6 +93,9 @@ steps:
           shell: [ "/bin/bash", "-e", "-c" ]
           environment:
             - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s databricks
 
@@ -97,6 +112,9 @@ steps:
           shell: [ "/bin/bash", "-e", "-c" ]
           environment:
             - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s databricks-sql
 
@@ -113,5 +131,8 @@ steps:
           shell: [ "/bin/bash", "-e", "-c" ]
           environment:
             - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
     commands: |
       curl -s "${RUN_MODELS_URL}" | bash -s sqlserver
