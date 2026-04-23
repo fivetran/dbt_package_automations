@@ -5,7 +5,7 @@ set -euo pipefail
 # Generate unique schema name for this build
 # Format: zz_bk_integration_tests_<commit_sha>_<build_number>_<warehouse>
 COMMIT_SHA=${BUILDKITE_COMMIT:0:7}
-BUILD_SCHEMA="$zz_bk_integration_tests_${COMMIT_SHA}_${BUILDKITE_BUILD_NUMBER}_$1"
+BUILD_SCHEMA="zz_bk_integration_tests_${COMMIT_SHA}_${BUILDKITE_BUILD_NUMBER}_$1"
 
 export BUILD_SCHEMA
 echo "Build schema: ${BUILD_SCHEMA}"
