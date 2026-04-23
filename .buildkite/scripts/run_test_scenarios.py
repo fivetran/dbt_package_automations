@@ -39,7 +39,7 @@ def load_scenarios(config_file):
 
 
 def run_dbt_command(cmd, cwd=None):
-    """Run a dbt command and handle errors with full output capture
+    """Run a dbt command and handle errors
 
     Args:
         cmd: List of command parts (e.g., ['dbt', 'run', '--target', 'dev'])
@@ -50,30 +50,10 @@ def run_dbt_command(cmd, cwd=None):
         False if command failed (non-zero return code)
     """
     print(f"\n=== Running: {' '.join(cmd)}")
-
-    # Capture stdout and stderr for error debugging
-    result = subprocess.run(
-        cmd,
-        cwd=cwd,
-        capture_output=True,  # Capture both stdout and stderr streams
-        text=True             # Return strings instead of bytes
-    )
-
+    result = subprocess.run(cmd, cwd=cwd)
     if result.returncode != 0:
         print(f"Command failed: {' '.join(cmd)}")
-        print(f"Exit code: {result.returncode}")
-
-        # Display actual dbt error messages instead of just "command failed"
-        if result.stdout.strip():
-            print("\n--- Command Output ---")
-            print(result.stdout)
-
-        if result.stderr.strip():
-            print("\n--- Error Output ---")
-            print(result.stderr)
-
         return False
-
     return True
 
 
@@ -172,12 +152,16 @@ def main():
         # === VARIABLE PREPARATION ===
         # Merge scenario-specific variables with the schema variable
         vars_dict = scenario_vars.copy()
-        vars_dict[schema_var_name] = build_schema
+        if build_schema:
+            vars_dict[schema_var_name] = build_schema
 
         # Convert Python dict to dbt YAML variable format: {key1: value1, key2: value2}
         vars_yaml_parts = []
         for key, value in vars_dict.items():
-            vars_yaml_parts.append(f"{key}: {value}")
+            if isinstance(value, str):
+                vars_yaml_parts.append(f"{key}: {value}")
+            else:
+                vars_yaml_parts.append(f"{key}: {value}")
         vars_yaml = f"{{{', '.join(vars_yaml_parts)}}}"
         print(f"Variables: {vars_yaml}")
         print(f"Include incremental: {include_incremental}")
@@ -227,7 +211,7 @@ def main():
 
     # Run additional test scenarios defined in the YAML configuration
     # Each scenario can have custom variables, names, and incremental testing settings
-    for i, scenario in enumerate(config.get('test_scenarios', []), 2): # Start counter at 2 since default scenario is considered scenario 1
+    for i, scenario in enumerate(config.get('test_scenarios', []), 2):
         # Check if scenario is allowed for this warehouse
         allowed_warehouses = scenario.get('warehouses', None)
         if allowed_warehouses and target not in allowed_warehouses:
