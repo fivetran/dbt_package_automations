@@ -157,7 +157,7 @@ if [[ "$INCLUDE_SQLSERVER" == "true" ]]; then
           limit: 1
     plugins:
       - docker#v3.13.0:
-          image: "python:3.13"
+          image: "python:3.10.13" # have to use 3.10 for its dependencies.
           shell: ["/bin/bash", "-e", "-c"]
           environment:
             - "BASH_ENV=/tmp/.bashrc"
