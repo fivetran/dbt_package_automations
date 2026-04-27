@@ -23,6 +23,14 @@ echo "SUPER_RUN: Starting CI execution for $(basename "$PWD")"
 # CONFIGURATION DETECTION
 # ============================================================================
 
+ensure_yaml_parser() {
+    # Check if PyYAML is available, install if not
+    if ! python3 -c "import yaml" 2>/dev/null; then
+        echo "  - Installing PyYAML for YAML parsing..."
+        pip install --quiet PyYAML
+    fi
+}
+
 parse_yaml_config() {
     local config_file="$1"
     python3 -c "
@@ -62,6 +70,9 @@ detect_warehouse_config() {
     if [[ -f "$config_file" ]]; then
         echo "  - Found config file: $config_file"
         echo "  - Parsing YAML configuration..."
+
+        # Ensure YAML parser is available
+        ensure_yaml_parser
 
         # Parse YAML file using Python
         local yaml_output
