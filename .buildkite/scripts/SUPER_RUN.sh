@@ -34,7 +34,7 @@ import subprocess
 try:
     import yaml
 except ImportError:
-    print('Installing PyYAML for YAML parsing...', file=sys.stderr)
+    print('Installing PyYAML...', file=sys.stderr)
     try:
         subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--quiet', 'PyYAML'])
         import yaml
@@ -122,54 +122,26 @@ generate_and_upload_pipeline() {
     local setup_url="$script_url/setup_credentials.sh"
     local test_url="$script_url/run_warehouse_tests.sh"
 
-    # Create pipeline steps dynamically
-    local pipeline_steps=""
-
-    # Standard warehouses (always included)
-    local warehouses=("postgres" "snowflake" "bigquery" "redshift" "databricks")
-
-    # Add optional warehouses based on config
+    # Show which warehouses will be tested
+    local warehouses_list="postgres, snowflake, bigquery, redshift, databricks"
     if [[ "$INCLUDE_DATABRICKS_SQL" == "true" ]]; then
-        warehouses+=("databricks-sql")
+        warehouses_list="$warehouses_list, databricks-sql"
     fi
-
     if [[ "$INCLUDE_SQLSERVER" == "true" ]]; then
-        warehouses+=("sqlserver")
+        warehouses_list="$warehouses_list, sqlserver"
     fi
+    echo "  - Will test warehouses: $warehouses_list"
 
-    echo "  - Will test warehouses: ${warehouses[*]}"
-
-    # Generate pipeline YAML
+    # Generate pipeline YAML with explicit steps
     cat > /tmp/pipeline.yml <<EOF
 steps:
-EOF
-
-    # Generate steps for each warehouse
-    for warehouse in "${warehouses[@]}"; do
-        local label_icon=""
-        local concurrency_config=""
-
-        case "$warehouse" in
-            "postgres") label_icon=":postgres:" ;;
-            "snowflake") label_icon=":snowflake-db:" ;;
-            "bigquery") label_icon=":gcloud:" ;;
-            "redshift")
-                label_icon=":amazon-redshift:"
-                concurrency_config="    concurrency: 3\n    concurrency_group: \"warehouse/redshift\""
-                ;;
-            "databricks") label_icon=":databricks:" ;;
-            "databricks-sql") label_icon=":databricks: :database:" ;;
-            "sqlserver") label_icon=":azure:" ;;
-        esac
-
-        cat >> /tmp/pipeline.yml <<EOF
-  - label: "${label_icon} Run Tests - ${warehouse^}"
-    key: "run_dbt_${warehouse//-/_}"
+  # Postgres
+  - label: ":postgres: Run Tests - Postgres"
+    key: "run_dbt_postgres"
     retry:
       automatic:
         - exit_status: -1
           limit: 1
-$(if [[ -n "$concurrency_config" ]]; then echo -e "$concurrency_config"; fi)
     plugins:
       - docker#v3.13.0:
           image: "python:3.13"
@@ -179,34 +151,171 @@ $(if [[ -n "$concurrency_config" ]]; then echo -e "$concurrency_config"; fi)
             - "BUILDKITE_BUILD_NUMBER"
             - "BUILDKITE_COMMIT"
             - "BUILDKITE_STEP_KEY"
-$(generate_warehouse_env_vars "$warehouse")
+            - "CI_POSTGRES_DBT_HOST"
+            - "CI_POSTGRES_DBT_USER"
+            - "CI_POSTGRES_DBT_PASS"
+            - "CI_POSTGRES_DBT_DBNAME"
     commands: |
-      # Setup credentials
-      echo "Setting up credentials..."
-      if ! curl -fsSL "${setup_url}" -o setup_credentials.sh; then
-        echo "Failed to download setup_credentials.sh"
-        exit 1
-      fi
-      if [[ ! -s setup_credentials.sh ]]; then
-        echo "Downloaded setup_credentials.sh is empty"
-        exit 1
-      fi
-      bash setup_credentials.sh
+      curl -s "${setup_url}" | bash
+      curl -s "${test_url}" | bash -s postgres
 
-      # Run tests for this warehouse
-      echo "Downloading warehouse test runner..."
-      if ! curl -fsSL "${test_url}" -o run_warehouse_tests.sh; then
-        echo "Failed to download run_warehouse_tests.sh"
-        exit 1
-      fi
-      if [[ ! -s run_warehouse_tests.sh ]]; then
-        echo "Downloaded run_warehouse_tests.sh is empty"
-        exit 1
-      fi
-      bash run_warehouse_tests.sh "${warehouse}"
+  # Snowflake
+  - label: ":snowflake-db: Run Tests - Snowflake"
+    key: "run_dbt_snowflake"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: ["/bin/bash", "-e", "-c"]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
+            - "CI_SNOWFLAKE_DBT_ACCOUNT"
+            - "CI_SNOWFLAKE_DBT_DATABASE"
+            - "CI_SNOWFLAKE_DBT_PASS"
+            - "CI_SNOWFLAKE_DBT_ROLE"
+            - "CI_SNOWFLAKE_DBT_USER"
+            - "CI_SNOWFLAKE_DBT_WAREHOUSE"
+    commands: |
+      curl -s "${setup_url}" | bash
+      curl -s "${test_url}" | bash -s snowflake
 
+  # BigQuery
+  - label: ":gcloud: Run Tests - BigQuery"
+    key: "run_dbt_bigquery"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: ["/bin/bash", "-e", "-c"]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
+            - "GCLOUD_SERVICE_KEY"
+    commands: |
+      curl -s "${setup_url}" | bash
+      curl -s "${test_url}" | bash -s bigquery
+
+  # Redshift
+  - label: ":amazon-redshift: Run Tests - Redshift"
+    key: "run_dbt_redshift"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    concurrency: 3
+    concurrency_group: "warehouse/redshift"
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: ["/bin/bash", "-e", "-c"]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
+            - "CI_REDSHIFT_DBT_DBNAME"
+            - "CI_REDSHIFT_DBT_HOST"
+            - "CI_REDSHIFT_DBT_PASS"
+            - "CI_REDSHIFT_DBT_USER"
+    commands: |
+      curl -s "${setup_url}" | bash
+      curl -s "${test_url}" | bash -s redshift
+
+  # Databricks
+  - label: ":databricks: Run Tests - Databricks"
+    key: "run_dbt_databricks"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: ["/bin/bash", "-e", "-c"]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
+            - "CI_DATABRICKS_DBT_HOST"
+            - "CI_DATABRICKS_DBT_HTTP_PATH"
+            - "CI_DATABRICKS_DBT_TOKEN"
+            - "CI_DATABRICKS_DBT_CATALOG"
+    commands: |
+      curl -s "${setup_url}" | bash
+      curl -s "${test_url}" | bash -s databricks
 EOF
-    done
+
+    # Add optional Databricks SQL step
+    if [[ "$INCLUDE_DATABRICKS_SQL" == "true" ]]; then
+        cat >> /tmp/pipeline.yml <<EOF
+
+  # Databricks SQL (optional)
+  - label: ":databricks: :database: Run Tests - Databricks-sql"
+    key: "run_dbt_databricks_sql"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: ["/bin/bash", "-e", "-c"]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
+            - "CI_DATABRICKS_DBT_HOST"
+            - "CI_DATABRICKS_SQL_DBT_HTTP_PATH"
+            - "CI_DATABRICKS_SQL_DBT_TOKEN"
+            - "CI_DATABRICKS_DBT_CATALOG"
+    commands: |
+      curl -s "${setup_url}" | bash
+      curl -s "${test_url}" | bash -s databricks-sql
+EOF
+    fi
+
+    # Add optional SQL Server step
+    if [[ "$INCLUDE_SQLSERVER" == "true" ]]; then
+        cat >> /tmp/pipeline.yml <<EOF
+
+  # SQL Server (optional)
+  - label: ":azure: Run Tests - Sqlserver"
+    key: "run_dbt_sqlserver"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.13"
+          shell: ["/bin/bash", "-e", "-c"]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_STEP_KEY"
+            - "CI_SQLSERVER_DBT_SERVER"
+            - "CI_SQLSERVER_DBT_DATABASE"
+            - "CI_SQLSERVER_DBT_USER"
+            - "CI_SQLSERVER_DBT_PASS"
+    commands: |
+      curl -s "${setup_url}" | bash
+      curl -s "${test_url}" | bash -s sqlserver
+EOF
+    fi
 
     echo "Uploading pipeline to BuildKite..."
     buildkite-agent pipeline upload /tmp/pipeline.yml
@@ -214,68 +323,6 @@ EOF
     echo "Pipeline uploaded successfully"
 }
 
-generate_warehouse_env_vars() {
-    local warehouse="$1"
-
-    case "$warehouse" in
-        "postgres")
-            cat <<EOF
-            - "CI_POSTGRES_DBT_HOST"
-            - "CI_POSTGRES_DBT_USER"
-            - "CI_POSTGRES_DBT_PASS"
-            - "CI_POSTGRES_DBT_DBNAME"
-EOF
-            ;;
-        "snowflake")
-            cat <<EOF
-            - "CI_SNOWFLAKE_DBT_ACCOUNT"
-            - "CI_SNOWFLAKE_DBT_DATABASE"
-            - "CI_SNOWFLAKE_DBT_PASS"
-            - "CI_SNOWFLAKE_DBT_ROLE"
-            - "CI_SNOWFLAKE_DBT_USER"
-            - "CI_SNOWFLAKE_DBT_WAREHOUSE"
-EOF
-            ;;
-        "bigquery")
-            cat <<EOF
-            - "GCLOUD_SERVICE_KEY"
-EOF
-            ;;
-        "redshift")
-            cat <<EOF
-            - "CI_REDSHIFT_DBT_DBNAME"
-            - "CI_REDSHIFT_DBT_HOST"
-            - "CI_REDSHIFT_DBT_PASS"
-            - "CI_REDSHIFT_DBT_USER"
-EOF
-            ;;
-        "databricks"|"databricks-sql")
-            if [[ "$warehouse" == "databricks-sql" ]]; then
-                cat <<EOF
-            - "CI_DATABRICKS_DBT_HOST"
-            - "CI_DATABRICKS_SQL_DBT_HTTP_PATH"
-            - "CI_DATABRICKS_SQL_DBT_TOKEN"
-            - "CI_DATABRICKS_DBT_CATALOG"
-EOF
-            else
-                cat <<EOF
-            - "CI_DATABRICKS_DBT_HOST"
-            - "CI_DATABRICKS_DBT_HTTP_PATH"
-            - "CI_DATABRICKS_DBT_TOKEN"
-            - "CI_DATABRICKS_DBT_CATALOG"
-EOF
-            fi
-            ;;
-        "sqlserver")
-            cat <<EOF
-            - "CI_SQLSERVER_DBT_SERVER"
-            - "CI_SQLSERVER_DBT_DATABASE"
-            - "CI_SQLSERVER_DBT_USER"
-            - "CI_SQLSERVER_DBT_PASS"
-EOF
-            ;;
-    esac
-}
 
 # ============================================================================
 # MAIN EXECUTION
