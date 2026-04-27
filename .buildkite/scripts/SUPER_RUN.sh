@@ -80,7 +80,7 @@ setup_credentials() {
     )
 
     for secret in "${secrets[@]}"; do
-        export "$secret"=$(gcloud secrets versions access latest --secret="$secret" --project="dbt-package-testing-363917")
+        export "$secret"="$(gcloud secrets versions access latest --secret="$secret" --project="dbt-package-testing-363917")"
     done
 
     echo "✅ Database credentials configured"
