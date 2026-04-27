@@ -29,15 +29,32 @@ detect_warehouse_config() {
     local include_sqlserver="${INCLUDE_SQLSERVER:-false}"
 
     echo "Detecting warehouse configuration..."
-    echo "  - INCLUDE_DATABRICKS_SQL: $include_databricks_sql"
-    echo "  - INCLUDE_SQLSERVER: $include_sqlserver"
 
     if [[ -f "$config_file" ]]; then
         echo "  - Found config file: $config_file"
-        # Could parse additional warehouse configs from YAML here if needed
+
+        # Parse YAML file for warehouse settings
+        if grep -q "^include_databricks_sql:" "$config_file"; then
+            local yaml_databricks_sql=$(grep "^include_databricks_sql:" "$config_file" | sed 's/include_databricks_sql:[[:space:]]*//' | tr -d '"'"'"' | xargs)
+            if [[ "$yaml_databricks_sql" == "true" ]]; then
+                include_databricks_sql="true"
+                echo "  - Found include_databricks_sql: true in $config_file"
+            fi
+        fi
+
+        if grep -q "^include_sqlserver:" "$config_file"; then
+            local yaml_sqlserver=$(grep "^include_sqlserver:" "$config_file" | sed 's/include_sqlserver:[[:space:]]*//' | tr -d '"'"'"' | xargs)
+            if [[ "$yaml_sqlserver" == "true" ]]; then
+                include_sqlserver="true"
+                echo "  - Found include_sqlserver: true in $config_file"
+            fi
+        fi
     else
         echo "  - No config file found, using defaults"
     fi
+
+    echo "  - INCLUDE_DATABRICKS_SQL: $include_databricks_sql"
+    echo "  - INCLUDE_SQLSERVER: $include_sqlserver"
 
     # Export for use in pipeline generation
     export INCLUDE_DATABRICKS_SQL="$include_databricks_sql"
