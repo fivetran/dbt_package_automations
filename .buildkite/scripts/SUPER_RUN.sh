@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-echo "🚀 SUPER_RUN: Starting CI execution for $(basename "$PWD")"
+echo "SUPER_RUN: Starting CI execution for $(basename "$PWD")"
 
 # ============================================================================
 # CONFIGURATION DETECTION
@@ -28,7 +28,7 @@ detect_warehouse_config() {
     local include_databricks_sql="${INCLUDE_DATABRICKS_SQL:-false}"
     local include_sqlserver="${INCLUDE_SQLSERVER:-false}"
 
-    echo "📋 Detecting warehouse configuration..."
+    echo "Detecting warehouse configuration..."
     echo "  - INCLUDE_DATABRICKS_SQL: $include_databricks_sql"
     echo "  - INCLUDE_SQLSERVER: $include_sqlserver"
 
@@ -50,7 +50,7 @@ detect_warehouse_config() {
 # ============================================================================
 
 generate_and_upload_pipeline() {
-    echo "🔧 Generating and uploading BuildKite pipeline..."
+    echo "Generating and uploading BuildKite pipeline..."
 
     local script_url="https://raw.githubusercontent.com/fivetran/dbt_package_automations/test/superscript/.buildkite/scripts"
     local setup_url="$script_url/setup_credentials.sh"
@@ -116,25 +116,25 @@ $(if [[ -n "$concurrency_config" ]]; then echo -e "$concurrency_config"; fi)
 $(generate_warehouse_env_vars "$warehouse")
     commands: |
       # Setup credentials
-      echo "🔑 Setting up credentials..."
+      echo "Setting up credentials..."
       if ! curl -fsSL "${setup_url}" -o setup_credentials.sh; then
-        echo "❌ Failed to download setup_credentials.sh"
+        echo "Failed to download setup_credentials.sh"
         exit 1
       fi
       if [[ ! -s setup_credentials.sh ]]; then
-        echo "❌ Downloaded setup_credentials.sh is empty"
+        echo "Downloaded setup_credentials.sh is empty"
         exit 1
       fi
       bash setup_credentials.sh
 
       # Run tests for this warehouse
-      echo "🧪 Downloading warehouse test runner..."
+      echo "Downloading warehouse test runner..."
       if ! curl -fsSL "${test_url}" -o run_warehouse_tests.sh; then
-        echo "❌ Failed to download run_warehouse_tests.sh"
+        echo "Failed to download run_warehouse_tests.sh"
         exit 1
       fi
       if [[ ! -s run_warehouse_tests.sh ]]; then
-        echo "❌ Downloaded run_warehouse_tests.sh is empty"
+        echo "Downloaded run_warehouse_tests.sh is empty"
         exit 1
       fi
       bash run_warehouse_tests.sh "${warehouse}"
@@ -142,10 +142,10 @@ $(generate_warehouse_env_vars "$warehouse")
 EOF
     done
 
-    echo "📤 Uploading pipeline to BuildKite..."
+    echo "Uploading pipeline to BuildKite..."
     buildkite-agent pipeline upload /tmp/pipeline.yml
 
-    echo "✅ Pipeline uploaded successfully"
+    echo "Pipeline uploaded successfully"
 }
 
 generate_warehouse_env_vars() {
@@ -219,7 +219,7 @@ main() {
     detect_warehouse_config
     generate_and_upload_pipeline
 
-    echo "🎉 SUPER_RUN completed successfully!"
+    echo "SUPER_RUN completed successfully!"
     echo "   Repository: $(basename "$PWD")"
     echo "   Warehouses: ${warehouses[*]:-"standard set"}"
     echo "   Pipeline uploaded and ready to execute"
