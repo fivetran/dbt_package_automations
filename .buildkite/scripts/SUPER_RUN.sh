@@ -93,7 +93,7 @@ setup_credentials() {
 generate_and_upload_pipeline() {
     echo "🔧 Generating and uploading BuildKite pipeline..."
 
-    local script_url="https://raw.githubusercontent.com/fivetran/dbt_package_automations/feature/centralized-bk/.buildkite/scripts"
+    local script_url="https://raw.githubusercontent.com/fivetran/dbt_package_automations/test/superscript/.buildkite/scripts"
     local setup_url="$script_url/setup_credentials.sh"
     local test_url="$script_url/run_warehouse_tests.sh"
 
@@ -157,10 +157,28 @@ $(if [[ -n "$concurrency_config" ]]; then echo -e "$concurrency_config"; fi)
 $(generate_warehouse_env_vars "$warehouse")
     commands: |
       # Setup credentials
-      curl -fsSL "${setup_url}" | bash
+      echo "🔑 Setting up credentials..."
+      if ! curl -fsSL "${setup_url}" -o setup_credentials.sh; then
+        echo "❌ Failed to download setup_credentials.sh"
+        exit 1
+      fi
+      if [[ ! -s setup_credentials.sh ]]; then
+        echo "❌ Downloaded setup_credentials.sh is empty"
+        exit 1
+      fi
+      bash setup_credentials.sh
 
       # Run tests for this warehouse
-      curl -fsSL "${test_url}" | bash -s "${warehouse}"
+      echo "🧪 Downloading warehouse test runner..."
+      if ! curl -fsSL "${test_url}" -o run_warehouse_tests.sh; then
+        echo "❌ Failed to download run_warehouse_tests.sh"
+        exit 1
+      fi
+      if [[ ! -s run_warehouse_tests.sh ]]; then
+        echo "❌ Downloaded run_warehouse_tests.sh is empty"
+        exit 1
+      fi
+      bash run_warehouse_tests.sh "${warehouse}"
 
 EOF
     done

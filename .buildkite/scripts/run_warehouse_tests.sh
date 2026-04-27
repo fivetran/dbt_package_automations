@@ -154,9 +154,16 @@ PROFILES
 # Download test scenarios runner from central location
 download_test_scenarios_runner() {
     echo "📥 Downloading test scenarios runner..."
-    curl -fsSL \
-        "https://raw.githubusercontent.com/fivetran/dbt_package_automations/feature/centralized-bk/.buildkite/scripts/run_test_scenarios.py" \
-        -o run_test_scenarios.py
+    if ! curl -fsSL \
+        "https://raw.githubusercontent.com/fivetran/dbt_package_automations/test/superscript/.buildkite/scripts/run_test_scenarios.py" \
+        -o run_test_scenarios.py; then
+        echo "❌ Failed to download test scenarios runner"
+        exit 1
+    fi
+    if [[ ! -s run_test_scenarios.py ]]; then
+        echo "❌ Downloaded run_test_scenarios.py is empty"
+        exit 1
+    fi
     chmod +x run_test_scenarios.py
 }
 
