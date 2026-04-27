@@ -5,9 +5,8 @@
 #
 # This script:
 # 1. Reads repo-specific config to determine what warehouses to test
-# 2. Sets up credentials from Google Cloud Secret Manager
-# 3. Generates and uploads BuildKite pipeline dynamically
-# 4. Each pipeline step runs dbt tests for specific warehouses
+# 2. Generates and uploads BuildKite pipeline dynamically
+# 3. Each pipeline step sets up credentials and runs dbt tests for specific warehouses
 #
 # Usage: Called from pipeline.yml in each dbt package repo
 # Environment Variables:
@@ -109,7 +108,6 @@ detect_warehouse_config() {
     export INCLUDE_DATABRICKS_SQL="$include_databricks_sql"
     export INCLUDE_SQLSERVER="$include_sqlserver"
 }
-
 
 # ============================================================================
 # PIPELINE GENERATION & UPLOAD
@@ -323,7 +321,6 @@ EOF
     echo "Pipeline uploaded successfully"
 }
 
-
 # ============================================================================
 # MAIN EXECUTION
 # ============================================================================
@@ -334,7 +331,6 @@ main() {
 
     echo "SUPER_RUN completed successfully!"
     echo "   Repository: $(basename "$PWD")"
-    echo "   Warehouses: ${warehouses[*]:-"standard set"}"
     echo "   Pipeline uploaded and ready to execute"
 }
 

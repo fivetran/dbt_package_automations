@@ -1,14 +1,9 @@
 #!/bin/bash
-#
-# setup_credentials.sh - Database credential setup
-# Fetches secrets from Google Cloud Secret Manager and exports them
-#
 
 set -euo pipefail
 
 echo "🔑 Setting up database credentials..."
 
-# Export secrets for Docker containers
 export GCLOUD_SERVICE_KEY="$(gcloud secrets versions access latest --secret="GCLOUD_SERVICE_KEY" --project="dbt-package-testing-363917")"
 export CI_POSTGRES_DBT_HOST="$(gcloud secrets versions access latest --secret="CI_POSTGRES_DBT_HOST" --project="dbt-package-testing-363917")"
 export CI_POSTGRES_DBT_USER="$(gcloud secrets versions access latest --secret="CI_POSTGRES_DBT_USER" --project="dbt-package-testing-363917")"
