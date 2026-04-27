@@ -22,91 +22,42 @@ echo "SUPER_RUN: Starting CI execution for $(basename "$PWD")"
 # CONFIGURATION DETECTION
 # ============================================================================
 
-parse_yaml_config() {
-    local config_file="$1"
-    python3 -c "
-import sys
-import os
-import subprocess
-
-# Try to import yaml, install if not available
-try:
-    import yaml
-except ImportError:
-    print('Installing PyYAML...', file=sys.stderr)
-    try:
-        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--quiet', 'PyYAML'])
-        import yaml
-    except Exception as e:
-        print(f'Failed to install PyYAML: {e}', file=sys.stderr)
-        print('YAML_INCLUDE_DATABRICKS_SQL=false')
-        print('YAML_INCLUDE_SQLSERVER=false')
-        sys.exit(0)
-
-try:
-    with open('$config_file', 'r') as f:
-        config = yaml.safe_load(f)
-
-    # Extract warehouse settings with defaults
-    include_databricks_sql = config.get('include_databricks_sql', False)
-    include_sqlserver = config.get('include_sqlserver', False)
-
-    # Print as key=value for bash to source
-    print(f'YAML_INCLUDE_DATABRICKS_SQL={str(include_databricks_sql).lower()}')
-    print(f'YAML_INCLUDE_SQLSERVER={str(include_sqlserver).lower()}')
-
-except FileNotFoundError:
-    print('YAML_INCLUDE_DATABRICKS_SQL=false')
-    print('YAML_INCLUDE_SQLSERVER=false')
-except Exception as e:
-    print(f'Error parsing YAML: {e}', file=sys.stderr)
-    print('YAML_INCLUDE_DATABRICKS_SQL=false')
-    print('YAML_INCLUDE_SQLSERVER=false')
-"
-}
-
 detect_warehouse_config() {
     local config_file="integration_tests/ci/test_scenarios.yml"
-    local include_databricks_sql="${INCLUDE_DATABRICKS_SQL:-false}"
-    local include_sqlserver="${INCLUDE_SQLSERVER:-false}"
 
     echo "Detecting warehouse configuration..."
 
     if [[ -f "$config_file" ]]; then
         echo "  - Found config file: $config_file"
-        echo "  - Parsing YAML configuration..."
 
-        # Parse YAML file using Python (installs PyYAML if needed)
-        local yaml_output
-        yaml_output=$(parse_yaml_config "$config_file")
+        # Parse YAML and set variables directly
+        eval $(python3 -c "
+import subprocess, sys
 
-        if [[ $? -eq 0 ]]; then
-            # Source the output to get variables
-            eval "$yaml_output"
+# Install PyYAML silently
+try:
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--quiet', 'PyYAML'],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    import yaml
 
-            # Override defaults with YAML values if they're true
-            if [[ "$YAML_INCLUDE_DATABRICKS_SQL" == "true" ]]; then
-                include_databricks_sql="true"
-                echo "  - Found include_databricks_sql: true in $config_file"
-            fi
+    with open('$config_file', 'r') as f:
+        config = yaml.safe_load(f) or {}
 
-            if [[ "$YAML_INCLUDE_SQLSERVER" == "true" ]]; then
-                include_sqlserver="true"
-                echo "  - Found include_sqlserver: true in $config_file"
-            fi
-        else
-            echo "  - Failed to parse YAML, using defaults"
-        fi
+    databricks_sql = str(config.get('include_databricks_sql', False)).lower()
+    sqlserver = str(config.get('include_sqlserver', False)).lower()
+
+    print(f'export INCLUDE_DATABRICKS_SQL={databricks_sql}')
+    print(f'export INCLUDE_SQLSERVER={sqlserver}')
+
+except Exception as e:
+    print(f'echo ERROR: Failed to parse config file: {e}', file=sys.stderr)
+    sys.exit(1)
+")
     else
-        echo "  - No config file found, using defaults"
+        echo "ERROR: Config file not found: $config_file"
+        echo "Each dbt package must have a test_scenarios.yml file"
+        exit 1
     fi
-
-    echo "  - INCLUDE_DATABRICKS_SQL: $include_databricks_sql"
-    echo "  - INCLUDE_SQLSERVER: $include_sqlserver"
-
-    # Export for use in pipeline generation
-    export INCLUDE_DATABRICKS_SQL="$include_databricks_sql"
-    export INCLUDE_SQLSERVER="$include_sqlserver"
 }
 
 # ============================================================================
@@ -122,6 +73,8 @@ generate_and_upload_pipeline() {
 
     # Show which warehouses will be tested
     local warehouses_list="postgres, snowflake, bigquery, redshift, databricks"
+
+    # Append optional warehouses based on config
     if [[ "$INCLUDE_DATABRICKS_SQL" == "true" ]]; then
         warehouses_list="$warehouses_list, databricks-sql"
     fi
