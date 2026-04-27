@@ -23,6 +23,35 @@ echo "SUPER_RUN: Starting CI execution for $(basename "$PWD")"
 # CONFIGURATION DETECTION
 # ============================================================================
 
+parse_yaml_config() {
+    local config_file="$1"
+    python3 -c "
+import yaml
+import sys
+import os
+
+try:
+    with open('$config_file', 'r') as f:
+        config = yaml.safe_load(f)
+
+    # Extract warehouse settings with defaults
+    include_databricks_sql = config.get('include_databricks_sql', False)
+    include_sqlserver = config.get('include_sqlserver', False)
+
+    # Print as key=value for bash to source
+    print(f'YAML_INCLUDE_DATABRICKS_SQL={str(include_databricks_sql).lower()}')
+    print(f'YAML_INCLUDE_SQLSERVER={str(include_sqlserver).lower()}')
+
+except FileNotFoundError:
+    print('YAML_INCLUDE_DATABRICKS_SQL=false')
+    print('YAML_INCLUDE_SQLSERVER=false')
+except Exception as e:
+    print(f'Error parsing YAML: {e}', file=sys.stderr)
+    print('YAML_INCLUDE_DATABRICKS_SQL=false')
+    print('YAML_INCLUDE_SQLSERVER=false')
+"
+}
+
 detect_warehouse_config() {
     local config_file="integration_tests/ci/test_scenarios.yml"
     local include_databricks_sql="${INCLUDE_DATABRICKS_SQL:-false}"
@@ -32,22 +61,28 @@ detect_warehouse_config() {
 
     if [[ -f "$config_file" ]]; then
         echo "  - Found config file: $config_file"
+        echo "  - Parsing YAML configuration..."
 
-        # Parse YAML file for warehouse settings
-        if grep -q "^include_databricks_sql:" "$config_file"; then
-            local yaml_databricks_sql=$(grep "^include_databricks_sql:" "$config_file" | sed 's/include_databricks_sql:[[:space:]]*//' | tr -d '"'"'"' | xargs)
-            if [[ "$yaml_databricks_sql" == "true" ]]; then
+        # Parse YAML file using Python
+        local yaml_output
+        yaml_output=$(parse_yaml_config "$config_file")
+
+        if [[ $? -eq 0 ]]; then
+            # Source the output to get variables
+            eval "$yaml_output"
+
+            # Override defaults with YAML values if they're true
+            if [[ "$YAML_INCLUDE_DATABRICKS_SQL" == "true" ]]; then
                 include_databricks_sql="true"
                 echo "  - Found include_databricks_sql: true in $config_file"
             fi
-        fi
 
-        if grep -q "^include_sqlserver:" "$config_file"; then
-            local yaml_sqlserver=$(grep "^include_sqlserver:" "$config_file" | sed 's/include_sqlserver:[[:space:]]*//' | tr -d '"'"'"' | xargs)
-            if [[ "$yaml_sqlserver" == "true" ]]; then
+            if [[ "$YAML_INCLUDE_SQLSERVER" == "true" ]]; then
                 include_sqlserver="true"
                 echo "  - Found include_sqlserver: true in $config_file"
             fi
+        else
+            echo "  - Failed to parse YAML, using defaults"
         fi
     else
         echo "  - No config file found, using defaults"
