@@ -99,8 +99,8 @@ steps:
       - CI_POSTGRES_DBT_PASS
       - CI_POSTGRES_DBT_DBNAME
     commands: |
-      curl -s "${setup_url}" | bash
-      curl -s "${test_url}" | bash -s postgres
+      curl -s "${setup_url}" -o setup_credentials.sh && source setup_credentials.sh
+      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh postgres
 
   # Snowflake
   - label: ":snowflake-db: Run Tests - Snowflake"
@@ -117,8 +117,8 @@ steps:
       - CI_SNOWFLAKE_DBT_USER
       - CI_SNOWFLAKE_DBT_WAREHOUSE
     commands: |
-      curl -s "${setup_url}" | bash
-      curl -s "${test_url}" | bash -s snowflake
+      curl -s "${setup_url}" -o setup_credentials.sh && source setup_credentials.sh
+      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh snowflake
 
   # BigQuery
   - label: ":gcloud: Run Tests - BigQuery"
@@ -130,8 +130,8 @@ steps:
     env:
       - GCLOUD_SERVICE_KEY
     commands: |
-      curl -s "${setup_url}" | bash
-      curl -s "${test_url}" | bash -s bigquery
+      curl -s "${setup_url}" -o setup_credentials.sh && source setup_credentials.sh
+      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh bigquery
 
   # Redshift
   - label: ":amazon-redshift: Run Tests - Redshift"
@@ -148,8 +148,8 @@ steps:
       - CI_REDSHIFT_DBT_PASS
       - CI_REDSHIFT_DBT_USER
     commands: |
-      curl -s "${setup_url}" | bash
-      curl -s "${test_url}" | bash -s redshift
+      curl -s "${setup_url}" -o setup_credentials.sh && source setup_credentials.sh
+      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh redshift
 
   # Databricks
   - label: ":databricks: Run Tests - Databricks"
@@ -164,8 +164,8 @@ steps:
       - CI_DATABRICKS_DBT_TOKEN
       - CI_DATABRICKS_DBT_CATALOG
     commands: |
-      curl -s "${setup_url}" | bash
-      curl -s "${test_url}" | bash -s databricks
+      curl -s "${setup_url}" -o setup_credentials.sh && source setup_credentials.sh
+      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks
 EOF
 
     # Add optional Databricks SQL step
@@ -185,8 +185,8 @@ EOF
       - CI_DATABRICKS_SQL_DBT_TOKEN
       - CI_DATABRICKS_DBT_CATALOG
     commands: |
-      curl -s "${setup_url}" | bash
-      curl -s "${test_url}" | bash -s databricks-sql
+      curl -s "${setup_url}" -o setup_credentials.sh && source setup_credentials.sh
+      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks-sql
 EOF
     fi
 
@@ -207,8 +207,8 @@ EOF
       - CI_SQLSERVER_DBT_USER
       - CI_SQLSERVER_DBT_PASS
     commands: |
-      curl -s "${setup_url}" | bash
-      curl -s "${test_url}" | bash -s sqlserver
+      curl -s "${setup_url}" -o setup_credentials.sh && source setup_credentials.sh
+      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh sqlserver
 EOF
     fi
 
