@@ -23,11 +23,11 @@ PREFIX="zz_bk_integration_tests"
 BUILD_SCHEMA="${PREFIX}_${COMMIT_SHA}_${BUILD_NUMBER}_${WAREHOUSE_TYPE}"
 
 export BUILD_SCHEMA
-echo "🏗️  Build schema: ${BUILD_SCHEMA}"
-echo "🧪 Running tests for warehouse: ${WAREHOUSE_TYPE}"
+echo "Build schema: ${BUILD_SCHEMA}"
+echo "Running tests for warehouse: ${WAREHOUSE_TYPE}"
 
 # Setup database credentials from Secret Manager
-echo "🔑 Setting up database credentials..."
+echo "Setting up database credentials..."
 setup_credentials() {
     local secrets=(
         "GCLOUD_SERVICE_KEY"
@@ -220,7 +220,6 @@ PROFILES
 
 # Download test scenarios runner from central location
 download_test_scenarios_runner() {
-    echo "📥 Downloading test scenarios runner..."
     if ! curl -fsSL \
         "https://raw.githubusercontent.com/fivetran/dbt_package_automations/test/superscript/.buildkite/scripts/run_test_scenarios.py" \
         -o run_test_scenarios.py; then
