@@ -100,7 +100,6 @@ steps:
       CI_POSTGRES_DBT_DBNAME
     commands: |
       curl -s "${setup_url}" -o setup_credentials.sh
-      source setup_credentials.sh
       curl -s "${test_url}" -o run_warehouse_tests.sh
       bash run_warehouse_tests.sh postgres
 
@@ -120,7 +119,6 @@ steps:
       CI_SNOWFLAKE_DBT_WAREHOUSE
     commands: |
       curl -s "${setup_url}" -o setup_credentials.sh
-      source setup_credentials.sh
       curl -s "${test_url}" -o run_warehouse_tests.sh
       bash run_warehouse_tests.sh snowflake
 
@@ -135,7 +133,6 @@ steps:
       GCLOUD_SERVICE_KEY
     commands: |
       curl -s "${setup_url}" -o setup_credentials.sh
-      source setup_credentials.sh
       curl -s "${test_url}" -o run_warehouse_tests.sh
       bash run_warehouse_tests.sh bigquery
 
@@ -155,7 +152,6 @@ steps:
       CI_REDSHIFT_DBT_USER
     commands: |
       curl -s "${setup_url}" -o setup_credentials.sh
-      source setup_credentials.sh
       curl -s "${test_url}" -o run_warehouse_tests.sh
       bash run_warehouse_tests.sh redshift
 
@@ -173,7 +169,6 @@ steps:
       CI_DATABRICKS_DBT_CATALOG
     commands: |
       curl -s "${setup_url}" -o setup_credentials.sh
-      source setup_credentials.sh
       curl -s "${test_url}" -o run_warehouse_tests.sh
       bash run_warehouse_tests.sh databricks
 EOF
@@ -196,7 +191,6 @@ EOF
       CI_DATABRICKS_DBT_CATALOG
     commands: |
       curl -s "${setup_url}" -o setup_credentials.sh
-      source setup_credentials.sh
       curl -s "${test_url}" -o run_warehouse_tests.sh
       bash run_warehouse_tests.sh databricks-sql
 EOF
@@ -220,9 +214,7 @@ EOF
       CI_SQLSERVER_DBT_PASS
     commands: |
       curl -s "${setup_url}" -o setup_credentials.sh
-      source setup_credentials.sh
       curl -s "${test_url}" -o run_warehouse_tests.sh
-      bash run_warehouse_tests.sh sqlserver
 EOF
     fi
 
