@@ -75,7 +75,7 @@ generate_and_upload_pipeline() {
 
     # Append optional warehouses based on config
     if [[ "$INCLUDE_DATABRICKS_SQL" == "true" ]]; then
-        warehouses_list="$warehouses_list, databricks-sql"
+        warehouses_list="$warehouses_list, databricks_sql"
     fi
     if [[ "$INCLUDE_SQLSERVER" == "true" ]]; then
         warehouses_list="$warehouses_list, sqlserver"
@@ -150,7 +150,7 @@ EOF
         - exit_status: -1
           limit: 1
     commands: |
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks-sql
+      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks_sql
 EOF
     fi
 

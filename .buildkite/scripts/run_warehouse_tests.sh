@@ -109,7 +109,7 @@ case "$WAREHOUSE_TYPE" in
     "redshift")
         pip install "dbt-redshift>=1.3.0,<2.0.0"
         ;;
-    "databricks"|"databricks-sql")
+    "databricks"|"databricks_sql")
         pip install "dbt-databricks>=1.3.0,<2.0.0"
         ;;
     *)
@@ -213,10 +213,10 @@ create_dbt_profiles
 echo "🔄 Entering integration tests directory..."
 cd integration_tests
 
-echo "🐍 Downloading test scenarios runner..."
+echo "Downloading test scenarios runner..."
 download_test_scenarios_runner
 
-echo "🚀 Running test scenarios for ${WAREHOUSE_TYPE}..."
+echo "Running test scenarios for ${WAREHOUSE_TYPE}..."
 python3 run_test_scenarios.py "${WAREHOUSE_TYPE}" "${BUILD_SCHEMA}"
 
 echo "✅ Tests completed successfully for ${WAREHOUSE_TYPE}!"
