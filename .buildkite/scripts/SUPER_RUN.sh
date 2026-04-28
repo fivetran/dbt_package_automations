@@ -94,13 +94,15 @@ steps:
         - exit_status: -1
           limit: 1
     env:
-      CI_POSTGRES_DBT_HOST: true
-      CI_POSTGRES_DBT_USER: true
-      CI_POSTGRES_DBT_PASS: true
-      CI_POSTGRES_DBT_DBNAME: true
+      CI_POSTGRES_DBT_HOST
+      CI_POSTGRES_DBT_USER
+      CI_POSTGRES_DBT_PASS
+      CI_POSTGRES_DBT_DBNAME
     commands: |
-      curl -s "${setup_url}" -o setup_credentials.sh && source setup_credentials.sh
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh postgres
+      curl -s "${setup_url}" -o setup_credentials.sh
+      source setup_credentials.sh
+      curl -s "${test_url}" -o run_warehouse_tests.sh
+      bash run_warehouse_tests.sh postgres
 
   # Snowflake
   - label: ":snowflake-db: Run Tests - Snowflake"
@@ -110,15 +112,17 @@ steps:
         - exit_status: -1
           limit: 1
     env:
-      CI_SNOWFLAKE_DBT_ACCOUNT: true
-      CI_SNOWFLAKE_DBT_DATABASE: true
-      CI_SNOWFLAKE_DBT_PASS: true
-      CI_SNOWFLAKE_DBT_ROLE: true
-      CI_SNOWFLAKE_DBT_USER: true
-      CI_SNOWFLAKE_DBT_WAREHOUSE: true
+      CI_SNOWFLAKE_DBT_ACCOUNT
+      CI_SNOWFLAKE_DBT_DATABASE
+      CI_SNOWFLAKE_DBT_PASS
+      CI_SNOWFLAKE_DBT_ROLE
+      CI_SNOWFLAKE_DBT_USER
+      CI_SNOWFLAKE_DBT_WAREHOUSE
     commands: |
-      curl -s "${setup_url}" -o setup_credentials.sh && source setup_credentials.sh
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh snowflake
+      curl -s "${setup_url}" -o setup_credentials.sh
+      source setup_credentials.sh
+      curl -s "${test_url}" -o run_warehouse_tests.sh
+      bash run_warehouse_tests.sh snowflake
 
   # BigQuery
   - label: ":gcloud: Run Tests - BigQuery"
@@ -128,10 +132,12 @@ steps:
         - exit_status: -1
           limit: 1
     env:
-      GCLOUD_SERVICE_KEY: true
+      GCLOUD_SERVICE_KEY
     commands: |
-      curl -s "${setup_url}" -o setup_credentials.sh && source setup_credentials.sh
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh bigquery
+      curl -s "${setup_url}" -o setup_credentials.sh
+      source setup_credentials.sh
+      curl -s "${test_url}" -o run_warehouse_tests.sh
+      bash run_warehouse_tests.sh bigquery
 
   # Redshift
   - label: ":amazon-redshift: Run Tests - Redshift"
@@ -143,13 +149,15 @@ steps:
     concurrency: 3
     concurrency_group: "warehouse/redshift"
     env:
-      CI_REDSHIFT_DBT_DBNAME: true
-      CI_REDSHIFT_DBT_HOST: true
-      CI_REDSHIFT_DBT_PASS: true
-      CI_REDSHIFT_DBT_USER: true
+      CI_REDSHIFT_DBT_DBNAME
+      CI_REDSHIFT_DBT_HOST
+      CI_REDSHIFT_DBT_PASS
+      CI_REDSHIFT_DBT_USER
     commands: |
-      curl -s "${setup_url}" -o setup_credentials.sh && source setup_credentials.sh
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh redshift
+      curl -s "${setup_url}" -o setup_credentials.sh
+      source setup_credentials.sh
+      curl -s "${test_url}" -o run_warehouse_tests.sh
+      bash run_warehouse_tests.sh redshift
 
   # Databricks
   - label: ":databricks: Run Tests - Databricks"
@@ -159,13 +167,15 @@ steps:
         - exit_status: -1
           limit: 1
     env:
-      CI_DATABRICKS_DBT_HOST: true
-      CI_DATABRICKS_DBT_HTTP_PATH: true
-      CI_DATABRICKS_DBT_TOKEN: true
-      CI_DATABRICKS_DBT_CATALOG: true
+      CI_DATABRICKS_DBT_HOST
+      CI_DATABRICKS_DBT_HTTP_PATH
+      CI_DATABRICKS_DBT_TOKEN
+      CI_DATABRICKS_DBT_CATALOG
     commands: |
-      curl -s "${setup_url}" -o setup_credentials.sh && source setup_credentials.sh
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks
+      curl -s "${setup_url}" -o setup_credentials.sh
+      source setup_credentials.sh
+      curl -s "${test_url}" -o run_warehouse_tests.sh
+      bash run_warehouse_tests.sh databricks
 EOF
 
     # Add optional Databricks SQL step
@@ -180,13 +190,15 @@ EOF
         - exit_status: -1
           limit: 1
     env:
-      CI_DATABRICKS_DBT_HOST: true
-      CI_DATABRICKS_SQL_DBT_HTTP_PATH: true
-      CI_DATABRICKS_SQL_DBT_TOKEN: true
-      CI_DATABRICKS_DBT_CATALOG: true
+      CI_DATABRICKS_DBT_HOST
+      CI_DATABRICKS_SQL_DBT_HTTP_PATH
+      CI_DATABRICKS_SQL_DBT_TOKEN
+      CI_DATABRICKS_DBT_CATALOG
     commands: |
-      curl -s "${setup_url}" -o setup_credentials.sh && source setup_credentials.sh
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks-sql
+      curl -s "${setup_url}" -o setup_credentials.sh
+      source setup_credentials.sh
+      curl -s "${test_url}" -o run_warehouse_tests.sh
+      bash run_warehouse_tests.sh databricks-sql
 EOF
     fi
 
@@ -202,13 +214,15 @@ EOF
         - exit_status: -1
           limit: 1
     env:
-      CI_SQLSERVER_DBT_SERVER: true
-      CI_SQLSERVER_DBT_DATABASE: true
-      CI_SQLSERVER_DBT_USER: true
-      CI_SQLSERVER_DBT_PASS: true
+      CI_SQLSERVER_DBT_SERVER
+      CI_SQLSERVER_DBT_DATABASE
+      CI_SQLSERVER_DBT_USER
+      CI_SQLSERVER_DBT_PASS
     commands: |
-      curl -s "${setup_url}" -o setup_credentials.sh && source setup_credentials.sh
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh sqlserver
+      curl -s "${setup_url}" -o setup_credentials.sh
+      source setup_credentials.sh
+      curl -s "${test_url}" -o run_warehouse_tests.sh
+      bash run_warehouse_tests.sh sqlserver
 EOF
     fi
 
