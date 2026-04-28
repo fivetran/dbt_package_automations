@@ -26,6 +26,46 @@ export BUILD_SCHEMA
 echo "🏗️  Build schema: ${BUILD_SCHEMA}"
 echo "🧪 Running tests for warehouse: ${WAREHOUSE_TYPE}"
 
+# Setup database credentials from Secret Manager
+echo "🔑 Setting up database credentials..."
+setup_credentials() {
+    local secrets=(
+        "GCLOUD_SERVICE_KEY"
+        "CI_POSTGRES_DBT_HOST"
+        "CI_POSTGRES_DBT_USER"
+        "CI_POSTGRES_DBT_PASS"
+        "CI_POSTGRES_DBT_DBNAME"
+        "CI_REDSHIFT_DBT_DBNAME"
+        "CI_REDSHIFT_DBT_HOST"
+        "CI_REDSHIFT_DBT_PASS"
+        "CI_REDSHIFT_DBT_USER"
+        "CI_SNOWFLAKE_DBT_ACCOUNT"
+        "CI_SNOWFLAKE_DBT_DATABASE"
+        "CI_SNOWFLAKE_DBT_PASS"
+        "CI_SNOWFLAKE_DBT_ROLE"
+        "CI_SNOWFLAKE_DBT_USER"
+        "CI_SNOWFLAKE_DBT_WAREHOUSE"
+        "CI_DATABRICKS_DBT_HOST"
+        "CI_DATABRICKS_DBT_HTTP_PATH"
+        "CI_DATABRICKS_DBT_TOKEN"
+        "CI_DATABRICKS_DBT_CATALOG"
+        "CI_DATABRICKS_SQL_DBT_HTTP_PATH"
+        "CI_DATABRICKS_SQL_DBT_TOKEN"
+        "CI_SQLSERVER_DBT_SERVER"
+        "CI_SQLSERVER_DBT_DATABASE"
+        "CI_SQLSERVER_DBT_USER"
+        "CI_SQLSERVER_DBT_PASS"
+    )
+
+    for secret in "${secrets[@]}"; do
+        export "$secret"="$(gcloud secrets versions access latest --secret="$secret" --project="dbt-package-testing-363917")"
+    done
+}
+
+# Setup credentials
+setup_credentials
+echo "✅ Database credentials configured"
+
 # Install system dependencies
 sudo apt-get update
 sudo apt-get install -y libsasl2-dev
