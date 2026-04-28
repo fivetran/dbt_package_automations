@@ -75,7 +75,34 @@ python3 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip setuptools
 
-echo "📦 Installing dbt adapter for ${WAREHOUSE_TYPE}"
+# Get dbt adapter version from test scenarios config
+get_adapter_version() {
+    local warehouse_type="$1"
+    local config_file="integration_tests/ci/test_scenarios.yml"
+    local default_version=">=1.3.0,<2.0.0"
+
+    if [[ -f "$config_file" ]]; then
+        local version=$(python3 -c "
+import subprocess, sys
+try:
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--quiet', 'PyYAML'],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    import yaml
+    with open('$config_file', 'r') as f:
+        config = yaml.safe_load(f) or {}
+    versions = config.get('dbt_adapter_versions', {})
+    print(versions.get('$warehouse_type', '$default_version'))
+except Exception:
+    print('$default_version')
+")
+        echo "$version"
+    else
+        echo "$default_version"
+    fi
+}
+
+DBT_VERSION=$(get_adapter_version "$WAREHOUSE_TYPE")
+echo "Installing dbt adapter for ${WAREHOUSE_TYPE} (${DBT_VERSION})"
 
 # Install warehouse-specific dbt adapter
 case "$WAREHOUSE_TYPE" in
@@ -98,23 +125,23 @@ case "$WAREHOUSE_TYPE" in
         pip install --no-cache-dir --no-binary :all: pyodbc==4.0.39
         ;;
     "snowflake")
-        pip install "dbt-snowflake>=1.3.0,<2.0.0"
+        pip install "dbt-snowflake${DBT_VERSION}"
         ;;
     "bigquery")
-        pip install "dbt-bigquery>=1.3.0,<2.0.0"
+        pip install "dbt-bigquery${DBT_VERSION}"
         ;;
     "postgres")
-        pip install "dbt-postgres>=1.3.0,<2.0.0"
+        pip install "dbt-postgres${DBT_VERSION}"
         ;;
     "redshift")
-        pip install "dbt-redshift>=1.3.0,<2.0.0"
+        pip install "dbt-redshift${DBT_VERSION}"
         ;;
     "databricks"|"databricks_sql")
-        pip install "dbt-databricks>=1.3.0,<2.0.0"
+        pip install "dbt-databricks${DBT_VERSION}"
         ;;
     *)
         echo "Using generic adapter installation for: dbt-${WAREHOUSE_TYPE}"
-        pip install "dbt-${WAREHOUSE_TYPE}>=1.3.0,<2.0.0"
+        pip install "dbt-${WAREHOUSE_TYPE}${DBT_VERSION}"
         ;;
 esac
 

@@ -203,15 +203,9 @@ def main():
 
     # === EXECUTE ALL TEST SCENARIOS ===
 
-    # Run default scenario first (baseline test with no custom variables)
-    # This ensures the package works with default settings before testing edge cases
-    # Default scenario always has a fixed name since it represents the baseline with no variables
-    default_include_incremental = config.get('default_include_incremental', False)
-    run_scenario({}, "test: default", include_incremental=default_include_incremental)
-
-    # Run additional test scenarios defined in the YAML configuration
+    # Run all test scenarios defined in the YAML configuration
     # Each scenario can have custom variables, names, and incremental testing settings
-    for i, scenario in enumerate(config.get('test_scenarios', []), 2):
+    for i, scenario in enumerate(config.get('test_scenarios', []), 1):
         # Check if scenario is allowed for this warehouse
         allowed_warehouses = scenario.get('warehouses', None)
         if allowed_warehouses and target not in allowed_warehouses:
