@@ -156,12 +156,20 @@ EOF
 
     # Add optional SQL Server step
     if [[ "$INCLUDE_SQLSERVER" == "true" ]]; then
+        echo "Fetching SQL Server credentials from Secret Manager..."
+
+        # Fetch secrets before generating pipeline
+        CI_SQLSERVER_DBT_SERVER=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_SERVER" --project="dbt-package-testing-363917")
+        CI_SQLSERVER_DBT_DATABASE=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_DATABASE" --project="dbt-package-testing-363917")
+        CI_SQLSERVER_DBT_USER=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_USER" --project="dbt-package-testing-363917")
+        CI_SQLSERVER_DBT_PASS=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_PASS" --project="dbt-package-testing-363917")
+
         cat >> /tmp/pipeline.yml <<EOF
 
   # SQL Server (optional)
-  - label: ":azure: Run Tests - Sqlserver"
+  - label ":azure: Run Tests - Sqlserver"
     key: "run_dbt_sqlserver"
-    plugins:
+    plugins: # Have to use python:3.10 image for SQL Server tests due to pyodbc compatibility issues with Python 3.11+
       - docker#v3.13.0:
           image: "python:3.10.13"
           shell: [ "/bin/bash", "-e", "-c" ]
@@ -172,10 +180,10 @@ EOF
             - "BUILDKITE_JOB_ID=\$BUILDKITE_JOB_ID"
             - "BUILDKITE_BUILD_ID=\$BUILDKITE_BUILD_ID"
             - "BUILDKITE_AGENT_ACCESS_TOKEN=\$BUILDKITE_AGENT_ACCESS_TOKEN"
-            - "CI_SQLSERVER_DBT_SERVER=\$CI_SQLSERVER_DBT_SERVER"
-            - "CI_SQLSERVER_DBT_DATABASE=\$CI_SQLSERVER_DBT_DATABASE"
-            - "CI_SQLSERVER_DBT_USER=\$CI_SQLSERVER_DBT_USER"
-            - "CI_SQLSERVER_DBT_PASS=\$CI_SQLSERVER_DBT_PASS"
+            - "CI_SQLSERVER_DBT_SERVER=${CI_SQLSERVER_DBT_SERVER}"
+            - "CI_SQLSERVER_DBT_DATABASE=${CI_SQLSERVER_DBT_DATABASE}"
+            - "CI_SQLSERVER_DBT_USER=${CI_SQLSERVER_DBT_USER}"
+            - "CI_SQLSERVER_DBT_PASS=${CI_SQLSERVER_DBT_PASS}"
     retry:
       automatic:
         - exit_status: -1

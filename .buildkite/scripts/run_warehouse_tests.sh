@@ -51,10 +51,6 @@ setup_credentials() {
         "CI_DATABRICKS_DBT_CATALOG"
         "CI_DATABRICKS_SQL_DBT_HTTP_PATH"
         "CI_DATABRICKS_SQL_DBT_TOKEN"
-        "CI_SQLSERVER_DBT_SERVER"
-        "CI_SQLSERVER_DBT_DATABASE"
-        "CI_SQLSERVER_DBT_USER"
-        "CI_SQLSERVER_DBT_PASS"
     )
 
     for secret in "${secrets[@]}"; do
