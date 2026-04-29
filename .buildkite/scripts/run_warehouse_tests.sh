@@ -107,11 +107,8 @@ echo "Installing dbt adapter for ${WAREHOUSE_TYPE} (${DBT_VERSION})"
 # Install warehouse-specific dbt adapter
 case "$WAREHOUSE_TYPE" in
     "sqlserver")
-        # Install development headers and tools FIRST
-        sudo apt-get update
-        sudo apt-get install -y build-essential unixodbc-dev g++
+        pip install -r integration_tests/requirements_sqlserver.txt
 
-        # Install SQL Server ODBC driver
         curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor | sudo tee /usr/share/keyrings/microsoft-prod.gpg > /dev/null
         curl -sSL https://packages.microsoft.com/config/debian/12/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
 
@@ -120,19 +117,13 @@ case "$WAREHOUSE_TYPE" in
         sudo ACCEPT_EULA=Y apt-get install -y mssql-tools18
         echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >> ~/.bashrc
         source ~/.bashrc
+        sudo apt-get -y install unixodbc-dev
+        sudo apt-get update
 
-        # Clean up build environment and update build tools
-        pip install --upgrade pip setuptools wheel build
-        pip cache purge
+        pip uninstall -y pyodbc
+        pip install --no-cache-dir --no-binary :all: pyodbc==4.0.39
 
-        # Install the latest pyodbc version (5.3.0) which should have Python 3.13 support
-        pip install --no-cache-dir "pyodbc==5.3.0"
-
-        # Install dbt-sqlserver without dependencies to avoid pyodbc downgrade
-        pip install --no-deps "dbt-sqlserver${DBT_VERSION}"
-
-        # Install dbt-sqlserver dependencies manually (excluding pyodbc)
-        pip install "dbt-core<2.0,>=1.9.0" "dbt-common<2.0,>=1.0" "dbt-adapters<2.0,>=1.11.0" "dbt-fabric"
+        # odbcinst -j
         ;;
     "snowflake")
         pip install "dbt-snowflake${DBT_VERSION}"
