@@ -167,6 +167,11 @@ EOF
           shell: [ "/bin/bash", "-e", "-c" ]
           environment:
             - "BASH_ENV=/tmp/.bashrc"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_JOB_ID"
+            - "BUILDKITE_BUILD_ID"
+            - "BUILDKITE_AGENT_ACCESS_TOKEN"
             - "CI_SQLSERVER_DBT_SERVER"
             - "CI_SQLSERVER_DBT_DATABASE"
             - "CI_SQLSERVER_DBT_USER"
