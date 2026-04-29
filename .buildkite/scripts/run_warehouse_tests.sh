@@ -121,20 +121,9 @@ case "$WAREHOUSE_TYPE" in
         echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >> ~/.bashrc
         source ~/.bashrc
 
-        # Try multiple approaches to install pyodbc for Python 3.13
-        echo "Attempting to install pyodbc for Python 3.13..."
-
-        # Try latest version with binary wheels first
-        pip install --only-binary=pyodbc --upgrade pyodbc || \
-        # Try pre-release versions that might have Python 3.13 support
-        pip install --only-binary=pyodbc --pre pyodbc || \
-        # Try installing dbt-sqlserver first (it might pull in compatible pyodbc)
-        pip install "dbt-sqlserver${DBT_VERSION}" || \
-        # Last resort: try building latest with all system deps
-        pip install pyodbc --upgrade
-
-        # Install dbt-sqlserver if not already installed
-        pip install "dbt-sqlserver${DBT_VERSION}"
+        # Follow official dbt-sqlserver installation instructions
+        # Just install dbt-sqlserver and let it handle pyodbc dependency
+        pip install -U "dbt-sqlserver${DBT_VERSION}"
         ;;
     "snowflake")
         pip install "dbt-snowflake${DBT_VERSION}"
