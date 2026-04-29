@@ -167,7 +167,7 @@ EOF
         cat >> /tmp/pipeline.yml <<EOF
 
   # SQL Server (optional)
-  - label ":azure: Run Tests - Sqlserver"
+  - label: ":azure: Run Tests - Sqlserver"
     key: "run_dbt_sqlserver"
     plugins: # Have to use python:3.10 image for SQL Server tests due to pyodbc compatibility issues with Python 3.11+
       - docker#v3.13.0:
