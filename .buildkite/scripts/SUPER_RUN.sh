@@ -161,6 +161,16 @@ EOF
   # SQL Server (optional)
   - label: ":azure: Run Tests - Sqlserver"
     key: "run_dbt_sqlserver"
+    plugins:
+      - docker#v3.13.0:
+          image: "python:3.10.13"
+          shell: [ "/bin/bash", "-e", "-c" ]
+          environment:
+            - "BASH_ENV=/tmp/.bashrc"
+            - "CI_SQLSERVER_DBT_SERVER"
+            - "CI_SQLSERVER_DBT_DATABASE"
+            - "CI_SQLSERVER_DBT_USER"
+            - "CI_SQLSERVER_DBT_PASS"
     retry:
       automatic:
         - exit_status: -1
