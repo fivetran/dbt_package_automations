@@ -121,9 +121,11 @@ case "$WAREHOUSE_TYPE" in
         echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >> ~/.bashrc
         source ~/.bashrc
 
-        # Follow official dbt-sqlserver installation instructions
-        # Just install dbt-sqlserver and let it handle pyodbc dependency
-        pip install -U "dbt-sqlserver${DBT_VERSION}"
+        # Install pyodbc from GitHub repo (has Python 3.13 fixes)
+        pip install git+https://github.com/mkleehammer/pyodbc
+
+        # Install dbt-sqlserver
+        pip install "dbt-sqlserver${DBT_VERSION}"
         ;;
     "snowflake")
         pip install "dbt-snowflake${DBT_VERSION}"
