@@ -121,8 +121,12 @@ case "$WAREHOUSE_TYPE" in
         echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >> ~/.bashrc
         source ~/.bashrc
 
-        # Install pyodbc from GitHub repo (has Python 3.13 fixes)
-        pip install git+https://github.com/mkleehammer/pyodbc
+        # Clean up build environment and update build tools
+        pip install --upgrade pip setuptools wheel build
+        pip cache purge
+
+        # Install pyodbc from GitHub repo (has Python 3.13 fixes) with clean build
+        pip install --no-cache-dir git+https://github.com/mkleehammer/pyodbc
 
         # Install dbt-sqlserver
         pip install "dbt-sqlserver${DBT_VERSION}"
