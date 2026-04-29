@@ -121,11 +121,9 @@ case "$WAREHOUSE_TYPE" in
         echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >> ~/.bashrc
         source ~/.bashrc
 
-        # Install newer pyodbc version compatible with Python 3.13
-        pip install "pyodbc>=4.0.44"
-
-        # Install other SQL Server requirements
-        pip install -r integration_tests/requirements_sqlserver.txt
+        # Install SQL Server requirements directly
+        pip install --only-binary=pyodbc pyodbc
+        pip install "dbt-sqlserver${DBT_VERSION}"
         ;;
     "snowflake")
         pip install "dbt-snowflake${DBT_VERSION}"
