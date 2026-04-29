@@ -161,8 +161,6 @@ EOF
   # SQL Server (optional)
   - label: ":azure: Run Tests - Sqlserver"
     key: "run_dbt_sqlserver"
-    agents:
-      image: "python:3.10.13"
     retry:
       automatic:
         - exit_status: -1

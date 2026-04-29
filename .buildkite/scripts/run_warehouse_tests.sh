@@ -107,23 +107,27 @@ echo "Installing dbt adapter for ${WAREHOUSE_TYPE} (${DBT_VERSION})"
 # Install warehouse-specific dbt adapter
 case "$WAREHOUSE_TYPE" in
     "sqlserver")
-        pip install -r integration_tests/requirements_sqlserver.txt
-
-        curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor | sudo tee /usr/share/keyrings/microsoft-prod.gpg > /dev/null
-        curl -sSL https://packages.microsoft.com/config/debian/12/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+        python -m pip install --upgrade pip setuptools wheel
 
         sudo apt-get update
-        sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
-        sudo ACCEPT_EULA=Y apt-get install -y mssql-tools18
-        echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >> ~/.bashrc
-        source ~/.bashrc
-        sudo apt-get -y install unixodbc-dev
+        sudo apt-get install -y curl gnupg ca-certificates unixodbc-dev
+
+        curl -sSL https://packages.microsoft.com/keys/microsoft.asc \
+          | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+
+        curl -sSL https://packages.microsoft.com/config/debian/12/prod.list \
+          | sudo tee /etc/apt/sources.list.d/mssql-release.list > /dev/null
+
         sudo apt-get update
+        sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 mssql-tools18
 
-        pip uninstall -y pyodbc
-        pip install --no-cache-dir --no-binary :all: pyodbc==4.0.39
+        export PATH="$PATH:/opt/mssql-tools18/bin"
 
-        # odbcinst -j
+        python -m pip install "dbt-sqlserver>=1.9.0,<2.0.0"
+        python -m pip install --no-cache-dir "pyodbc>=5.2.0"
+
+        odbcinst -j
+        python -c "import pyodbc; print(pyodbc.version)"
         ;;
     "snowflake")
         pip install "dbt-snowflake${DBT_VERSION}"
