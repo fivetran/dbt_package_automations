@@ -186,6 +186,7 @@ EOF
         - exit_status: -1
           limit: 1
     commands: |
+      apt-get update && apt-get install -y sudo
       curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh sqlserver
 EOF
     fi
