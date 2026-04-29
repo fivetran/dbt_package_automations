@@ -132,7 +132,7 @@ case "$WAREHOUSE_TYPE" in
         pip install --no-deps "dbt-sqlserver${DBT_VERSION}"
 
         # Install dbt-sqlserver dependencies manually (excluding pyodbc)
-        pip install "dbt-core<2.0,>=1.9.0" "dbt-common<2.0,>=1.0" "dbt-adapters<2.0,>=1.11.0"
+        pip install "dbt-core<2.0,>=1.9.0" "dbt-common<2.0,>=1.0" "dbt-adapters<2.0,>=1.11.0" "dbt-fabric"
         ;;
     "snowflake")
         pip install "dbt-snowflake${DBT_VERSION}"
