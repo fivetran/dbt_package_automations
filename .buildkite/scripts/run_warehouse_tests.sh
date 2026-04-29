@@ -107,7 +107,9 @@ echo "Installing dbt adapter for ${WAREHOUSE_TYPE} (${DBT_VERSION})"
 # Install warehouse-specific dbt adapter
 case "$WAREHOUSE_TYPE" in
     "sqlserver")
-        pip install -r integration_tests/requirements_sqlserver.txt
+        # Install development headers and tools FIRST
+        sudo apt-get update
+        sudo apt-get install -y build-essential unixodbc-dev g++
 
         # Install SQL Server ODBC driver
         curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor > /usr/share/keyrings/microsoft-prod.gpg
@@ -118,11 +120,9 @@ case "$WAREHOUSE_TYPE" in
         ACCEPT_EULA=Y sudo apt-get install -y mssql-tools18
         echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >> ~/.bashrc
         source ~/.bashrc
-        sudo apt-get -y install unixodbc-dev
-        sudo apt-get update
 
-        pip uninstall -y pyodbc
-        pip install --no-cache-dir --no-binary :all: pyodbc==4.0.39
+        # Now install pyodbc after all system deps are ready
+        pip install -r integration_tests/requirements_sqlserver.txt
         ;;
     "snowflake")
         pip install "dbt-snowflake${DBT_VERSION}"
