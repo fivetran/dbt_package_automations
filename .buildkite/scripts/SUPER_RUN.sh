@@ -155,6 +155,7 @@ EOF
     fi
 
     # Add optional SQL Server step
+    # Have to use python:3.10 image for SQL Server tests due to pyodbc compatibility issues with Python 3.11+
     if [[ "$INCLUDE_SQLSERVER" == "true" ]]; then
         echo "Fetching SQL Server credentials from Secret Manager..."
 
@@ -169,7 +170,7 @@ EOF
   # SQL Server (optional)
   - label: ":azure: Run Tests - Sqlserver"
     key: "run_dbt_sqlserver"
-    plugins: # Have to use python:3.10 image for SQL Server tests due to pyodbc compatibility issues with Python 3.11+
+    plugins:
       - docker#v3.13.0:
           image: "python:3.10.13"
           shell: [ "/bin/bash", "-e", "-c" ]
