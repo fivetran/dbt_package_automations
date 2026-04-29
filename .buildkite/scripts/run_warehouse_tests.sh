@@ -128,8 +128,11 @@ case "$WAREHOUSE_TYPE" in
         # Install the latest pyodbc version (5.3.0) which should have Python 3.13 support
         pip install --no-cache-dir "pyodbc==5.3.0"
 
-        # Install dbt-sqlserver
-        pip install "dbt-sqlserver${DBT_VERSION}"
+        # Install dbt-sqlserver without dependencies to avoid pyodbc downgrade
+        pip install --no-deps "dbt-sqlserver${DBT_VERSION}"
+
+        # Install dbt-sqlserver dependencies manually (excluding pyodbc)
+        pip install "dbt-core<2.0,>=1.9.0" "dbt-common<2.0,>=1.0" "dbt-adapters<2.0,>=1.11.0"
         ;;
     "snowflake")
         pip install "dbt-snowflake${DBT_VERSION}"
