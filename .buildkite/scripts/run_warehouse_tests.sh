@@ -51,11 +51,15 @@ setup_credentials() {
         "CI_DATABRICKS_DBT_CATALOG"
         "CI_DATABRICKS_SQL_DBT_HTTP_PATH"
         "CI_DATABRICKS_SQL_DBT_TOKEN"
+        # SQL Server credentials are passed directly from SUPER_RUN.sh as env vars
     )
 
-    for secret in "${secrets[@]}"; do
-        export "$secret"="$(gcloud secrets versions access latest --secret="$secret" --project="dbt-package-testing-363917")"
-    done
+    # Skip secret fetching for SQL Server - credentials are provided by SUPER_RUN.sh
+    if [[ "$WAREHOUSE_TYPE" != "sqlserver" ]]; then
+        for secret in "${secrets[@]}"; do
+            export "$secret"="$(gcloud secrets versions access latest --secret="$secret" --project="dbt-package-testing-363917")"
+        done
+    fi
 }
 
 # Setup credentials
