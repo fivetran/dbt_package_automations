@@ -112,7 +112,7 @@ case "$WAREHOUSE_TYPE" in
         sudo apt-get install -y build-essential unixodbc-dev g++
 
         # Install SQL Server ODBC driver
-        curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor > /usr/share/keyrings/microsoft-prod.gpg
+        curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor | sudo tee /usr/share/keyrings/microsoft-prod.gpg > /dev/null
         curl -sSL https://packages.microsoft.com/config/debian/12/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
 
         sudo apt-get update
