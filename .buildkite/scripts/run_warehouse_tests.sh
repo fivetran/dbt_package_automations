@@ -125,8 +125,8 @@ case "$WAREHOUSE_TYPE" in
         pip install --upgrade pip setuptools wheel build
         pip cache purge
 
-        # Install pyodbc from GitHub repo (has Python 3.13 fixes) with clean build
-        pip install --no-cache-dir git+https://github.com/mkleehammer/pyodbc
+        # Install the latest pyodbc version (5.3.0) which should have Python 3.13 support
+        pip install --no-cache-dir "pyodbc==5.3.0"
 
         # Install dbt-sqlserver
         pip install "dbt-sqlserver${DBT_VERSION}"
