@@ -168,7 +168,8 @@ EOF
           limit: 1
     commands: |
       pyenv install -s 3.10
-      export PATH="/var/lib/buildkite-agent/.pyenv/versions/3.10/bin:$PATH"
+      PYTHON310_PATH=\$(pyenv prefix 3.10)/bin
+      export PATH="\$PYTHON310_PATH:\$PATH"
       python --version
       curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh sqlserver
 EOF
