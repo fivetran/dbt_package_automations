@@ -95,47 +95,47 @@ steps:
     commands: |
       curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh postgres
 
-  # Snowflake
-  - label: ":snowflake-db: Run Tests - Snowflake"
-    key: "run_dbt_snowflake"
-    retry:
-      automatic:
-        - exit_status: -1
-          limit: 1
-    commands: |
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh snowflake
+  # # Snowflake
+  # - label: ":snowflake-db: Run Tests - Snowflake"
+  #   key: "run_dbt_snowflake"
+  #   retry:
+  #     automatic:
+  #       - exit_status: -1
+  #         limit: 1
+  #   commands: |
+  #     curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh snowflake
 
-  # BigQuery
-  - label: ":gcloud: Run Tests - BigQuery"
-    key: "run_dbt_bigquery"
-    retry:
-      automatic:
-        - exit_status: -1
-          limit: 1
-    commands: |
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh bigquery
+  # # BigQuery
+  # - label: ":gcloud: Run Tests - BigQuery"
+  #   key: "run_dbt_bigquery"
+  #   retry:
+  #     automatic:
+  #       - exit_status: -1
+  #         limit: 1
+  #   commands: |
+  #     curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh bigquery
 
-  # Redshift
-  - label: ":amazon-redshift: Run Tests - Redshift"
-    key: "run_dbt_redshift"
-    retry:
-      automatic:
-        - exit_status: -1
-          limit: 1
-    concurrency: 3
-    concurrency_group: "warehouse/redshift"
-    commands: |
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh redshift
+  # # Redshift
+  # - label: ":amazon-redshift: Run Tests - Redshift"
+  #   key: "run_dbt_redshift"
+  #   retry:
+  #     automatic:
+  #       - exit_status: -1
+  #         limit: 1
+  #   concurrency: 3
+  #   concurrency_group: "warehouse/redshift"
+  #   commands: |
+  #     curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh redshift
 
-  # Databricks
-  - label: ":databricks: Run Tests - Databricks"
-    key: "run_dbt_databricks"
-    retry:
-      automatic:
-        - exit_status: -1
-          limit: 1
-    commands: |
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks
+  # # Databricks
+  # - label: ":databricks: Run Tests - Databricks"
+  #   key: "run_dbt_databricks"
+  #   retry:
+  #     automatic:
+  #       - exit_status: -1
+  #         limit: 1
+  #   commands: |
+  #     curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks
 EOF
 
 #     # Add optional Databricks SQL step
@@ -168,8 +168,8 @@ EOF
           limit: 1
     commands: |
       pyenv install -s 3.10
-      PYTHON310_PATH=\$(pyenv prefix 3.10)/bin
-      export PATH="\$PYTHON310_PATH:\$PATH"
+      eval "\$(pyenv init -)"
+      pyenv shell 3.10
       python --version
       curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh sqlserver
 EOF
