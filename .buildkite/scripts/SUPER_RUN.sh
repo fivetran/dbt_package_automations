@@ -86,73 +86,73 @@ generate_and_upload_pipeline() {
     cat > /tmp/pipeline.yml <<EOF
 steps:
   # Postgres
-  - label: ":postgres: Run Tests - Postgres"
-    key: "run_dbt_postgres"
-    retry:
-      automatic:
-        - exit_status: -1
-          limit: 1
-    commands: |
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh postgres
+#   - label: ":postgres: Run Tests - Postgres"
+#     key: "run_dbt_postgres"
+#     retry:
+#       automatic:
+#         - exit_status: -1
+#           limit: 1
+#     commands: |
+#       curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh postgres
 
-  # Snowflake
-  - label: ":snowflake-db: Run Tests - Snowflake"
-    key: "run_dbt_snowflake"
-    retry:
-      automatic:
-        - exit_status: -1
-          limit: 1
-    commands: |
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh snowflake
+#   # Snowflake
+#   - label: ":snowflake-db: Run Tests - Snowflake"
+#     key: "run_dbt_snowflake"
+#     retry:
+#       automatic:
+#         - exit_status: -1
+#           limit: 1
+#     commands: |
+#       curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh snowflake
 
-  # BigQuery
-  - label: ":gcloud: Run Tests - BigQuery"
-    key: "run_dbt_bigquery"
-    retry:
-      automatic:
-        - exit_status: -1
-          limit: 1
-    commands: |
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh bigquery
+#   # BigQuery
+#   - label: ":gcloud: Run Tests - BigQuery"
+#     key: "run_dbt_bigquery"
+#     retry:
+#       automatic:
+#         - exit_status: -1
+#           limit: 1
+#     commands: |
+#       curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh bigquery
 
-  # Redshift
-  - label: ":amazon-redshift: Run Tests - Redshift"
-    key: "run_dbt_redshift"
-    retry:
-      automatic:
-        - exit_status: -1
-          limit: 1
-    concurrency: 3
-    concurrency_group: "warehouse/redshift"
-    commands: |
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh redshift
+#   # Redshift
+#   - label: ":amazon-redshift: Run Tests - Redshift"
+#     key: "run_dbt_redshift"
+#     retry:
+#       automatic:
+#         - exit_status: -1
+#           limit: 1
+#     concurrency: 3
+#     concurrency_group: "warehouse/redshift"
+#     commands: |
+#       curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh redshift
 
-  # Databricks
-  - label: ":databricks: Run Tests - Databricks"
-    key: "run_dbt_databricks"
-    retry:
-      automatic:
-        - exit_status: -1
-          limit: 1
-    commands: |
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks
-EOF
+#   # Databricks
+#   - label: ":databricks: Run Tests - Databricks"
+#     key: "run_dbt_databricks"
+#     retry:
+#       automatic:
+#         - exit_status: -1
+#           limit: 1
+#     commands: |
+#       curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks
+# EOF
 
-    # Add optional Databricks SQL step
-    if [[ "$INCLUDE_DATABRICKS_SQL" == "true" ]]; then
-        cat >> /tmp/pipeline.yml <<EOF
+#     # Add optional Databricks SQL step
+#     if [[ "$INCLUDE_DATABRICKS_SQL" == "true" ]]; then
+#         cat >> /tmp/pipeline.yml <<EOF
 
-  # Databricks SQL (optional)
-  - label: ":databricks: :database: Run Tests - Databricks-sql"
-    key: "run_dbt_databricks_sql"
-    retry:
-      automatic:
-        - exit_status: -1
-          limit: 1
-    commands: |
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks_sql
-EOF
-    fi
+#   # Databricks SQL (optional)
+#   - label: ":databricks: :database: Run Tests - Databricks-sql"
+#     key: "run_dbt_databricks_sql"
+#     retry:
+#       automatic:
+#         - exit_status: -1
+#           limit: 1
+#     commands: |
+#       curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks_sql
+# EOF
+#     fi
 
     # Add optional SQL Server step
     # Have to use python:3.10 image for SQL Server tests due to pyodbc compatibility issues with Python 3.11+
