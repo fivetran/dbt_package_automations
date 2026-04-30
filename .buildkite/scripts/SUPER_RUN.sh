@@ -85,15 +85,15 @@ generate_and_upload_pipeline() {
     # Generate pipeline YAML with explicit steps
     cat > /tmp/pipeline.yml <<EOF
 steps:
-  # Postgres
-#   - label: ":postgres: Run Tests - Postgres"
-#     key: "run_dbt_postgres"
-#     retry:
-#       automatic:
-#         - exit_status: -1
-#           limit: 1
-#     commands: |
-#       curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh postgres
+  # # Postgres
+  # - label: ":postgres: Run Tests - Postgres"
+  #   key: "run_dbt_postgres"
+  #   retry:
+  #     automatic:
+  #       - exit_status: -1
+  #         limit: 1
+  #   commands: |
+  #     curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh postgres
 
 #   # Snowflake
 #   - label: ":snowflake-db: Run Tests - Snowflake"
@@ -136,7 +136,7 @@ steps:
 #           limit: 1
 #     commands: |
 #       curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks
-# EOF
+EOF
 
 #     # Add optional Databricks SQL step
 #     if [[ "$INCLUDE_DATABRICKS_SQL" == "true" ]]; then
