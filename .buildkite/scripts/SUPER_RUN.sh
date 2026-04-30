@@ -170,7 +170,8 @@ EOF
       pyenv install -s 3.10
       eval "\$(pyenv init -)"
       pyenv shell 3.10
-      bash .buildkite/scripts/run_warehouse_tests.sh sqlserver
+      python --version
+      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh sqlserver
 EOF
     fi
 
