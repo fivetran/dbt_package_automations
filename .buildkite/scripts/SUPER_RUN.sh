@@ -157,37 +157,18 @@ EOF
     # Add optional SQL Server step
     # Have to use python:3.10 image for SQL Server tests due to pyodbc compatibility issues with Python 3.11+
     if [[ "$INCLUDE_SQLSERVER" == "true" ]]; then
-        echo "Fetching SQL Server credentials from Secret Manager..."
-
-        # Fetch secrets before generating pipeline
-        CI_SQLSERVER_DBT_SERVER=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_SERVER" --project="dbt-package-testing-363917")
-        CI_SQLSERVER_DBT_DATABASE=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_DATABASE" --project="dbt-package-testing-363917")
-        CI_SQLSERVER_DBT_USER=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_USER" --project="dbt-package-testing-363917")
-        CI_SQLSERVER_DBT_PASS=$(gcloud secrets versions access latest --secret="CI_SQLSERVER_DBT_PASS" --project="dbt-package-testing-363917")
-
         cat >> /tmp/pipeline.yml <<EOF
 
   # SQL Server (optional)
   - label: ":azure: Run Tests - Sqlserver"
     key: "run_dbt_sqlserver"
-    plugins:
-      - docker#v3.13.0:
-          image: "python:3.10.13"
-          shell: [ "/bin/bash", "-e", "-c" ]
-          environment:
-            - "BASH_ENV=/tmp/.bashrc"
-            - "BUILDKITE_COMMIT=\$BUILDKITE_COMMIT"
-            - "BUILDKITE_BUILD_NUMBER=\$BUILDKITE_BUILD_NUMBER"
-            - "CI_SQLSERVER_DBT_SERVER=${CI_SQLSERVER_DBT_SERVER}"
-            - "CI_SQLSERVER_DBT_DATABASE=${CI_SQLSERVER_DBT_DATABASE}"
-            - "CI_SQLSERVER_DBT_USER=${CI_SQLSERVER_DBT_USER}"
-            - "CI_SQLSERVER_DBT_PASS=${CI_SQLSERVER_DBT_PASS}"
     retry:
       automatic:
         - exit_status: -1
           limit: 1
     commands: |
-      apt-get update && apt-get install -y sudo
+      pyenv install -s 3.10.13
+      pyenv global 3.10.13
       curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh sqlserver
 EOF
     fi
