@@ -167,8 +167,9 @@ EOF
         - exit_status: -1
           limit: 1
     commands: |
-      pyenv install -s 3.10.13
-      pyenv global 3.10.13
+      pyenv install -s 3.10
+      export PATH="/var/lib/buildkite-agent/.pyenv/versions/3.10/bin:$PATH"
+      python --version
       curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh sqlserver
 EOF
     fi
