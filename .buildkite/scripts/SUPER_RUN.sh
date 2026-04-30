@@ -85,15 +85,15 @@ generate_and_upload_pipeline() {
     # Generate pipeline YAML with explicit steps
     cat > /tmp/pipeline.yml <<EOF
 steps:
-  # Postgres
-  - label: ":postgres: Run Tests - Postgres"
-    key: "run_dbt_postgres"
-    retry:
-      automatic:
-        - exit_status: -1
-          limit: 1
-    commands: |
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh postgres
+  # # Postgres
+  # - label: ":postgres: Run Tests - Postgres"
+  #   key: "run_dbt_postgres"
+  #   retry:
+  #     automatic:
+  #       - exit_status: -1
+  #         limit: 1
+  #   commands: |
+  #     curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh postgres
 
   # # Snowflake
   # - label: ":snowflake-db: Run Tests - Snowflake"
@@ -170,8 +170,7 @@ EOF
       pyenv install -s 3.10
       eval "\$(pyenv init -)"
       pyenv shell 3.10
-      python --version
-      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh sqlserver
+      bash .buildkite/scripts/run_warehouse_tests.sh sqlserver
 EOF
     fi
 

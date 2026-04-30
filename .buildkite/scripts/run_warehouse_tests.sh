@@ -109,16 +109,16 @@ case "$WAREHOUSE_TYPE" in
       "sqlserver")
         pip install -r integration_tests/requirements_sqlserver.txt
 
-        curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/microsoft-prod.gpg
-        curl -sSL https://packages.microsoft.com/config/debian/12/prod.list > /etc/apt/sources.list.d/mssql-release.list
+        sudo curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg
+        sudo curl -sSL https://packages.microsoft.com/config/debian/12/prod.list -o /etc/apt/sources.list.d/mssql-release.list
 
-        apt-get update
-        ACCEPT_EULA=Y apt-get install -y msodbcsql18
-        ACCEPT_EULA=Y apt-get install -y mssql-tools18
+        sudo apt-get update
+        sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
+        sudo ACCEPT_EULA=Y apt-get install -y mssql-tools18
         echo 'export PATH="$PATH:/opt/mssql-tools18/bin"' >> ~/.bashrc
         source ~/.bashrc
-        apt-get -y install unixodbc-dev
-        apt-get update
+        sudo apt-get -y install unixodbc-dev
+        sudo apt-get update
 
         pip uninstall -y pyodbc
         pip install --no-cache-dir --no-binary :all: pyodbc==4.0.39
