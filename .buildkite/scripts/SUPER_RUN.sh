@@ -138,21 +138,21 @@ steps:
       curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks
 EOF
 
-#     # Add optional Databricks SQL step
-#     if [[ "$INCLUDE_DATABRICKS_SQL" == "true" ]]; then
-#         cat >> /tmp/pipeline.yml <<EOF
+    # Add optional Databricks SQL step
+    if [[ "$INCLUDE_DATABRICKS_SQL" == "true" ]]; then
+        cat >> /tmp/pipeline.yml <<EOF
 
-#   # Databricks SQL (optional)
-#   - label: ":databricks: :database: Run Tests - Databricks-sql"
-#     key: "run_dbt_databricks_sql"
-#     retry:
-#       automatic:
-#         - exit_status: -1
-#           limit: 1
-#     commands: |
-#       curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks_sql
-# EOF
-#     fi
+  # Databricks SQL (optional)
+  - label: ":databricks: :database: Run Tests - Databricks-sql"
+    key: "run_dbt_databricks_sql"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    commands: |
+      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks_sql
+EOF
+    fi
 
     # Add optional SQL Server step
     # Have to use python:3.10 image for SQL Server tests due to pyodbc compatibility issues with Python 3.11+
