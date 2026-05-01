@@ -85,57 +85,57 @@ generate_and_upload_pipeline() {
     # Generate pipeline YAML with explicit steps
     cat > /tmp/pipeline.yml <<EOF
 steps:
-  # # Postgres
-  # - label: ":postgres: Run Tests - Postgres"
-  #   key: "run_dbt_postgres"
-  #   retry:
-  #     automatic:
-  #       - exit_status: -1
-  #         limit: 1
-  #   commands: |
-  #     curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh postgres
+  # Postgres
+  - label: ":postgres: Run Tests - Postgres"
+    key: "run_dbt_postgres"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    commands: |
+      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh postgres
 
-  # # Snowflake
-  # - label: ":snowflake-db: Run Tests - Snowflake"
-  #   key: "run_dbt_snowflake"
-  #   retry:
-  #     automatic:
-  #       - exit_status: -1
-  #         limit: 1
-  #   commands: |
-  #     curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh snowflake
+  # Snowflake
+  - label: ":snowflake-db: Run Tests - Snowflake"
+    key: "run_dbt_snowflake"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    commands: |
+      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh snowflake
 
-  # # BigQuery
-  # - label: ":gcloud: Run Tests - BigQuery"
-  #   key: "run_dbt_bigquery"
-  #   retry:
-  #     automatic:
-  #       - exit_status: -1
-  #         limit: 1
-  #   commands: |
-  #     curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh bigquery
+  # BigQuery
+  - label: ":gcloud: Run Tests - BigQuery"
+    key: "run_dbt_bigquery"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    commands: |
+      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh bigquery
 
-  # # Redshift
-  # - label: ":amazon-redshift: Run Tests - Redshift"
-  #   key: "run_dbt_redshift"
-  #   retry:
-  #     automatic:
-  #       - exit_status: -1
-  #         limit: 1
-  #   concurrency: 3
-  #   concurrency_group: "warehouse/redshift"
-  #   commands: |
-  #     curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh redshift
+  # Redshift
+  - label: ":amazon-redshift: Run Tests - Redshift"
+    key: "run_dbt_redshift"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    concurrency: 3
+    concurrency_group: "warehouse/redshift"
+    commands: |
+      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh redshift
 
-  # # Databricks
-  # - label: ":databricks: Run Tests - Databricks"
-  #   key: "run_dbt_databricks"
-  #   retry:
-  #     automatic:
-  #       - exit_status: -1
-  #         limit: 1
-  #   commands: |
-  #     curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks
+  # Databricks
+  - label: ":databricks: Run Tests - Databricks"
+    key: "run_dbt_databricks"
+    retry:
+      automatic:
+        - exit_status: -1
+          limit: 1
+    commands: |
+      curl -s "${test_url}" -o run_warehouse_tests.sh && bash run_warehouse_tests.sh databricks
 EOF
 
 #     # Add optional Databricks SQL step
