@@ -61,7 +61,7 @@ jobs:
         run: |
           if [[ "${{ steps.new_version.outputs.version }}" == "${{ steps.recent_version.outputs.version }}" ]]; then
             echo "Version is unchanged. Skipping release creation."
-            exit 0  # This will cause the job to succeed and skip subsequent steps.
+            exit 0  # This will cause the job to succeed but skip subsequent steps.
           fi
           echo "New version detected. Proceeding with release creation."
 
