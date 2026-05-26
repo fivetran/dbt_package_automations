@@ -61,9 +61,11 @@ jobs:
         run: |
           if [[ "${{ steps.new_version.outputs.version }}" == "${{ steps.recent_version.outputs.version }}" ]]; then
             echo "Version is unchanged. Skipping release creation."
-            exit 0  # This will cause the job to succeed but skip subsequent steps.
+            echo "should_create_release=skip" >> $GITHUB_OUTPUT
+          else
+            echo "New version detected. Proceeding with release creation."
+            echo "should_create_release=create" >> $GITHUB_OUTPUT
           fi
-          echo "New version detected. Proceeding with release creation."
 
       - name: Extract release notes from changelog
         id: extract_notes
@@ -121,6 +123,7 @@ jobs:
           echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
 
       - name: Create the release
+        if: steps.check_version.outputs.should_create_release == 'create'
         id: create_release
         env:
           version: ${{ steps.new_version.outputs.version }}
