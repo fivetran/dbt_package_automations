@@ -19,9 +19,7 @@ jobs:
       - name: Get current version from Github (NOT including pre-releases)
         id: current_stable_version
         run: |
-          CURRENT_STABLE_VERSION=$(curl -s \
-            "https://api.github.com/repos/${{ github.repository }}/releases/latest" \
-            | jq -r '.tag_name // empty')
+          CURRENT_STABLE_VERSION=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/latest" | jq -r '.tag_name // empty')
 
           if [[ -z "$CURRENT_STABLE_VERSION" ]]; then
             echo "No previous stable release found."
@@ -34,8 +32,7 @@ jobs:
       - name: Get current version from GitHub (including pre-releases)
         id: recent_version
         run: |
-          RESPONSE=$(curl -s \
-            https://api.github.com/repos/${{ github.repository }}/releases)
+          RESPONSE=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases)
 
           RECENT_VERSION=$(echo "$RESPONSE" | jq -r '
             if type == "array" then
@@ -118,7 +115,7 @@ jobs:
           if [[ "$VERSION" =~ [ab][0-9]+$ ]]; then
             echo "Detected pre-release tag: $VERSION"
             IS_PRERELEASE=true
-            RELEASE_BRANCH="${{ github.ref_name }}"
+            RELEASE_BRANCH="${{ github.head_ref }}"
           else
             echo "Detected full release tag: $VERSION"
             IS_PRERELEASE=false
