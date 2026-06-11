@@ -12,6 +12,7 @@ jobs:
       - name: Extract new version from changelog
         id: new_version
         run: |
+          # -oP prints only the matched text; tr strips trailing whitespace/newline from the match
           VERSION=$(grep -oP 'v[0-9]+.*' CHANGELOG.md | head -1 | tr -d '[:space:]')
           echo "Extracted version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -19,6 +20,7 @@ jobs:
       - name: Get current version from Github (NOT including pre-releases)
         id: current_stable_version
         run: |
+          # /releases/latest returns 404 with no tag_name on first-ever release; // empty converts jq null to ""
           CURRENT_STABLE_VERSION=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/latest" | jq -r '.tag_name // empty')
 
           if [[ -z "$CURRENT_STABLE_VERSION" ]]; then
@@ -34,6 +36,7 @@ jobs:
         run: |
           RESPONSE=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases)
 
+          # else empty handles non-array responses (e.g. rate limit errors) without crashing
           RECENT_VERSION=$(echo "$RESPONSE" | jq -r '
             if type == "array" then
               map(select(.draft == false)) |
@@ -68,14 +71,20 @@ jobs:
       - name: Extract release notes from changelog
         id: extract_notes
         run: |
-          START_LINE=$(awk "/^# .*${{ steps.new_version.outputs.version }}/{print NR+1; exit}" CHANGELOG.md)
+          # \$ passes a literal $ (end-of-line anchor) to awk, so v1.0.0 doesn't match v1.0.0-b1
+          START_LINE=$(awk "/^# .*${{ steps.new_version.outputs.version }}\$/{print NR+1; exit}" CHANGELOG.md)
+
+          if [[ -z "$START_LINE" ]]; then
+            echo "Error: version header '${{ steps.new_version.outputs.version }}' not found in CHANGELOG.md"
+            exit 1
+          fi
 
           if [[ "${{ steps.recent_version.outputs.version }}" == "__none__" ]]; then
             END_LINE=$(wc -l < CHANGELOG.md)
           else
-            END_LINE=$(awk "/^# .*${{ steps.recent_version.outputs.version }}/{print NR-1; exit}" CHANGELOG.md)
+            END_LINE=$(awk "/^# .*${{ steps.recent_version.outputs.version }}\$/{print NR-1; exit}" CHANGELOG.md)
 
-            # Fallback: previous release may be a pre-release removed from the changelog (e.g. b1/a1 entries).
+            # Fallback: previous release may be a pre-release removed from the changelog (e.g. -b1/-a1 entries).
             # Find the next H1 after the new version header instead.
             if [[ -z "$END_LINE" || "$END_LINE" -le "$START_LINE" ]]; then
               echo "Previous version header '${{ steps.recent_version.outputs.version }}' not found in changelog — falling back to next H1 boundary"
@@ -92,6 +101,7 @@ jobs:
       - name: Format release notes for description
         id: format_notes
         run: |
+          # Heredoc syntax required for multiline $GITHUB_OUTPUT values
           # Remove hyperlinks from contributor mentions: [@username](url) → @username
           {
             echo "formatted_notes<<RELEASE_NOTES_EOF"
@@ -111,7 +121,7 @@ jobs:
         run: |
           VERSION="${{ steps.new_version.outputs.version }}"
 
-          # Check if the version ends in 'a' or 'b' + number (e.g. v1.2.3a1)
+          # Pre-releases use a dash suffix format: v1.2.3-b1 or v1.2.3-a1
           if [[ "$VERSION" =~ [ab][0-9]+$ ]]; then
             echo "Detected pre-release tag: $VERSION"
             IS_PRERELEASE=true
@@ -142,6 +152,8 @@ jobs:
           current_stable: ${{ steps.current_stable_version.outputs.version }}
           current_any: ${{ steps.recent_version.outputs.version }}
         run: |
+          # Pre-releases compare against the most recent release of any kind;
+          # stable releases only compare against the last stable release
           if [[ "$prerelease" == "true" ]]; then
             base_version="$current_any"
           else
@@ -152,12 +164,14 @@ jobs:
             compare_url="https://github.com/${repo}/compare/${base_version}...${version}"
             echo "Using base version: $base_version"
             echo "Compare URL: $compare_url"
+            # $'\n\n' is bash ANSI-C quoting to embed literal newlines in the string
             body="${description}"$'\n\n'"**Full Changelog**: ${compare_url}"
           else
             echo "No base version found — skipping changelog link."
             body="$description"
           fi
 
+          # --argjson (not --arg) so "true"/"false" strings become JSON booleans in the payload
           PAYLOAD=$(jq -n \
             --arg tag_name "$version" \
             --arg target_commitish "$branch" \
@@ -167,6 +181,7 @@ jobs:
             --argjson prerelease "$prerelease" \
             '{tag_name: $tag_name, target_commitish: $target_commitish, name: $name, body: $body, draft: $draft, prerelease: $prerelease}')
 
+          # -w "%{http_code}" appends the 3-digit HTTP status code to the response body
           RESPONSE=$(curl -X POST \
             -w "%{http_code}" \
             -H "Authorization: token $token" \
@@ -174,6 +189,7 @@ jobs:
             "https://api.github.com/repos/$repo/releases" \
             -d "$PAYLOAD")
 
+          # Extract the status code appended to the end of the response by -w
           STATUS_CODE=$(echo "${RESPONSE: -3}")
 
           echo "Response: $RESPONSE"
