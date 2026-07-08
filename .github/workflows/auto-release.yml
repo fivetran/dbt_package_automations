@@ -7,12 +7,12 @@ jobs:
     runs-on: ubuntu-latest
     name: Create a release
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Extract new version from changelog
         id: new_version
         run: |
-          # Extract the version number from the changelog file
+          # -oP prints only the matched text; tr strips trailing whitespace/newline from the match
           VERSION=$(grep -oP 'v[0-9]+.*' CHANGELOG.md | head -1 | tr -d '[:space:]')
           echo "Extracted version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -20,14 +20,14 @@ jobs:
       - name: Get current version from Github (NOT including pre-releases)
         id: current_stable_version
         run: |
-          # Get the latest published release using the GitHub REST API
-          CURRENT_STABLE_VERSION=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/latest" | jq -r '.tag_name')
+          # /releases/latest returns 404 with no tag_name on first-ever release; // empty converts jq null to ""
+          CURRENT_STABLE_VERSION=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/latest" | jq -r '.tag_name // empty')
 
           if [[ -z "$CURRENT_STABLE_VERSION" ]]; then
-            echo "No previous release found."
+            echo "No previous stable release found."
             echo "version=__none__" >> $GITHUB_OUTPUT
           else
-            echo "Latest release tag (including pre-releases): $CURRENT_STABLE_VERSION"
+            echo "Latest stable release tag: $CURRENT_STABLE_VERSION"
             echo "version=$CURRENT_STABLE_VERSION" >> $GITHUB_OUTPUT
           fi
 
@@ -36,6 +36,7 @@ jobs:
         run: |
           RESPONSE=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases)
 
+          # else empty handles non-array responses (e.g. rate limit errors) without crashing
           RECENT_VERSION=$(echo "$RESPONSE" | jq -r '
             if type == "array" then
               map(select(.draft == false)) |
@@ -70,31 +71,47 @@ jobs:
       - name: Extract release notes from changelog
         id: extract_notes
         run: |
-          # Use awk to extract the line numbers of the start and end of the changes
-          START_LINE=$(awk "/^# .*${{ steps.new_version.outputs.version }}/{print NR+1; exit}" CHANGELOG.md)
-          # This uses different logic if it's the first release of a repo.
+          # \$ passes a literal $ (end-of-line anchor) to awk, so v1.0.0 doesn't match v1.0.0-b1
+          START_LINE=$(awk "/^# .*${{ steps.new_version.outputs.version }}\$/{print NR+1; exit}" CHANGELOG.md)
+
+          if [[ -z "$START_LINE" ]]; then
+            echo "Error: version header '${{ steps.new_version.outputs.version }}' not found in CHANGELOG.md"
+            exit 1
+          fi
+
           if [[ "${{ steps.recent_version.outputs.version }}" == "__none__" ]]; then
             END_LINE=$(wc -l < CHANGELOG.md)
           else
-            END_LINE=$(awk "/^# .*${{ steps.recent_version.outputs.version }}/{print NR-1; exit}" CHANGELOG.md)
+            END_LINE=$(awk "/^# .*${{ steps.recent_version.outputs.version }}\$/{print NR-1; exit}" CHANGELOG.md)
+
+            # Fallback: previous release may be a pre-release removed from the changelog (e.g. -b1/-a1 entries).
+            # Find the next H1 after the new version header instead.
+            if [[ -z "$END_LINE" || "$END_LINE" -le "$START_LINE" ]]; then
+              echo "Previous version header '${{ steps.recent_version.outputs.version }}' not found in changelog — falling back to next H1 boundary"
+              END_LINE=$(awk -v start="$START_LINE" 'NR > start && /^# /{print NR-1; exit}' CHANGELOG.md)
+              if [[ -z "$END_LINE" ]]; then
+                END_LINE=$(wc -l < CHANGELOG.md)
+              fi
+            fi
           fi
-          # Extract the release notes between the line numbers
+
+          echo "Extracting changelog lines $START_LINE to $END_LINE"
           awk -v start_line="$START_LINE" -v end_line="$END_LINE" 'NR >= start_line && NR <= end_line' CHANGELOG.md > extracted_notes.txt
 
       - name: Format release notes for description
         id: format_notes
         run: |
-          # Replace newline characters with appropriate line breaks and remove link from contributors
-          FORMATTED_NOTES=$(sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g' extracted_notes.txt | sed 's/\[@\([[:alnum:]_-]*\)\](\([^)]*\))/@\1/g')
-          # Escape double quotes in FORMATTED_NOTES
-          FORMATTED_NOTES="${FORMATTED_NOTES//\"/\\\"}"
-          echo "Formatted release notes: $FORMATTED_NOTES"
-          echo "formatted_notes=$FORMATTED_NOTES" >> $GITHUB_OUTPUT
+          # Heredoc syntax required for multiline $GITHUB_OUTPUT values
+          # Remove hyperlinks from contributor mentions: [@username](url) → @username
+          {
+            echo "formatted_notes<<RELEASE_NOTES_EOF"
+            sed 's/\[@\([[:alnum:]_-]*\)\](\([^)]*\))/@\1/g' extracted_notes.txt
+            echo "RELEASE_NOTES_EOF"
+          } >> $GITHUB_OUTPUT
 
       - name: Get Repository Name
         id: repo_name
         run: |
-          # Use basename to get the repository name without the owner
           REPO_NAME=$(basename "${{ github.repository }}")
           echo "Repository Name: $REPO_NAME"
           echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
@@ -104,7 +121,7 @@ jobs:
         run: |
           VERSION="${{ steps.new_version.outputs.version }}"
 
-          # Check if the version ends in 'a' or 'b' + number (e.g. v1.2.3a1)
+          # Pre-releases use a dash suffix format: v1.2.3-b1 or v1.2.3-a1
           if [[ "$VERSION" =~ [ab][0-9]+$ ]]; then
             echo "Detected pre-release tag: $VERSION"
             IS_PRERELEASE=true
@@ -118,7 +135,6 @@ jobs:
           echo "Pre-release: $IS_PRERELEASE"
           echo "Target branch: $RELEASE_BRANCH"
 
-          # Output values for use in later steps
           echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
           echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
 
@@ -130,13 +146,14 @@ jobs:
           title: ${{ steps.new_version.outputs.version }} ${{ steps.repo_name.outputs.repo_name }}
           description: ${{ steps.format_notes.outputs.formatted_notes }}
           branch: ${{ steps.release_params.outputs.release_branch }}
-          draft: 'true'
           prerelease: ${{ steps.release_params.outputs.is_prerelease }}
           repo: ${{ github.repository }}
           token: ${{ secrets.GH_TOKEN }}
           current_stable: ${{ steps.current_stable_version.outputs.version }}
-          current_any: ${{ steps.recent_version.outputs.version }}  # can be pre or stable
+          current_any: ${{ steps.recent_version.outputs.version }}
         run: |
+          # Pre-releases compare against the most recent release of any kind;
+          # stable releases only compare against the last stable release
           if [[ "$prerelease" == "true" ]]; then
             base_version="$current_any"
           else
@@ -147,26 +164,36 @@ jobs:
             compare_url="https://github.com/${repo}/compare/${base_version}...${version}"
             echo "Using base version: $base_version"
             echo "Compare URL: $compare_url"
-            description="${description}\n\n**Full Changelog**: ${compare_url}"
+            # $'\n\n' is bash ANSI-C quoting to embed literal newlines in the string
+            body="${description}"$'\n\n'"**Full Changelog**: ${compare_url}"
           else
             echo "No base version found — skipping changelog link."
+            body="$description"
           fi
 
-          # Create the release draft using the GitHub API
+          # --argjson (not --arg) so "true"/"false" strings become JSON booleans in the payload
+          PAYLOAD=$(jq -n \
+            --arg tag_name "$version" \
+            --arg target_commitish "$branch" \
+            --arg name "$title" \
+            --arg body "$body" \
+            --argjson draft true \
+            --argjson prerelease "$prerelease" \
+            '{tag_name: $tag_name, target_commitish: $target_commitish, name: $name, body: $body, draft: $draft, prerelease: $prerelease}')
+
+          # -w "%{http_code}" appends the 3-digit HTTP status code to the response body
           RESPONSE=$(curl -X POST \
             -w "%{http_code}" \
             -H "Authorization: token $token" \
             -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/$repo/releases" \
-            -d "{\"tag_name\": \"$version\",\"target_commitish\": \"$branch\",\"name\": \"$title\",\"body\": \"$description\",\"draft\": $draft,\"prerelease\": $prerelease}")
+            -d "$PAYLOAD")
 
-          # Extract the status code from the response
+          # Extract the status code appended to the end of the response by -w
           STATUS_CODE=$(echo "${RESPONSE: -3}")
 
-          # Print the response for verification
           echo "Response: $RESPONSE"
 
-          # Fail the workflow if the status code is not in the 2xx range
           if [[ "$STATUS_CODE" -lt 200 || "$STATUS_CODE" -ge 300 ]]; then
             echo "Error: GitHub API request failed with status code $STATUS_CODE"
             exit 1
