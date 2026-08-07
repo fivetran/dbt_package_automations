@@ -131,3 +131,23 @@ jobs:
         git push origin "$BRANCH_NAME"
       env:
         BRANCH_NAME: ${{ steps.pr.outputs.branch }}
+
+    - name: Report docs status to GitHub
+      if: always()
+      run: |
+        if [[ "${{ job.status }}" == "success" ]]; then
+          STATE="success"
+          DESC="Docs successfully generated and committed"
+        else
+          STATE="failure"
+          DESC="Docs generation failed"
+        fi
+    
+        curl -X POST \
+          -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+          "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+          -d "{
+            \"state\": \"$STATE\",
+            \"context\": \"docs/generated\",
+            \"description\": \"$DESC\"
+          }"
