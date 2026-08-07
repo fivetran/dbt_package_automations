@@ -123,18 +123,27 @@ jobs:
         cp integration_tests/target/manifest.json docs/
 
     - name: Commit and push docs to PR branch
+      id: push
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
         git add docs/
         git commit -m "Generate dbt docs via GitHub Actions" || echo "No changes to commit"
         git push origin "$BRANCH_NAME"
+        # capture the SHA we just pushed
+        echo "new_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
       env:
         BRANCH_NAME: ${{ steps.pr.outputs.branch }}
 
     - name: Report docs status to GitHub
       if: always()
       run: |
+        # Use the pushed SHA if available, fall back to trigger SHA
+        SHA="${{ steps.push.outputs.new_sha }}"
+        if [[ -z "$SHA" ]]; then
+          SHA="${{ github.sha }}"
+        fi
+
         if [[ "${{ job.status }}" == "success" ]]; then
           STATE="success"
           DESC="Docs successfully generated and committed"
@@ -142,10 +151,10 @@ jobs:
           STATE="failure"
           DESC="Docs generation failed"
         fi
-    
+
         curl -X POST \
           -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
-          "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+          "https://api.github.com/repos/${{ github.repository }}/statuses/${SHA}" \
           -d "{
             \"state\": \"$STATE\",
             \"context\": \"docs/generated\",
