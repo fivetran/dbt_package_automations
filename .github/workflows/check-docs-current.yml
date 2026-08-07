@@ -1,0 +1,51 @@
+name: Check docs current
+
+on:
+  workflow_call:
+
+jobs:
+  check-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Determine whether docs are required
+        id: check
+        run: |
+          PR=${{ github.event.pull_request.number }}
+          REPO=${{ github.repository }}
+
+          # All files changed in the PR (paginated — 100 is usually enough)
+          CHANGED=$(curl -s \
+            -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+            "https://api.github.com/repos/${REPO}/pulls/${PR}/files?per_page=100" \
+            | jq -r '.[].filename')
+
+          # Files that don't affect dbt docs output
+          IRRELEVANT='\.md$|^\.quickstart/|^\images/|^\integration_tests/|^\.github/|^docs/'
+          RELEVANT=$(echo "$CHANGED" | grep -vE "$IRRELEVANT" || true)
+
+          if [[ -z "$RELEVANT" ]]; then
+            echo "Only docs-irrelevant files changed — no regeneration needed"
+            echo "state=success" >> $GITHUB_OUTPUT
+            echo "desc=No docs-relevant changes" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Docs-relevant changes exist — require that docs/ was updated
+          if echo "$CHANGED" | grep -q '^docs/'; then
+            echo "state=success" >> $GITHUB_OUTPUT
+            echo "desc=Docs generated" >> $GITHUB_OUTPUT
+          else
+            echo "state=pending" >> $GITHUB_OUTPUT
+            echo "desc=Docs not yet generated — apply docs:ready" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Report status
+        run: |
+          curl -s -o /dev/null -X POST \
+            -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }}" \
+            -d "{
+              \"state\": \"${{ steps.check.outputs.state }}\",
+              \"context\": \"docs/generated\",
+              \"description\": \"${{ steps.check.outputs.desc }}\"
+            }"
