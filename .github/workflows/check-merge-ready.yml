@@ -7,7 +7,8 @@ jobs:
   check-label:
     runs-on: ubuntu-latest
     steps:
-      - name: Report merge-ready status
+      - name: Check for merge:ready label
+        id: label
         run: |
           LABELS=$(curl -s \
             -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
@@ -15,18 +16,57 @@ jobs:
             | jq -r '.[].name')
 
           if echo "$LABELS" | grep -q "merge:ready"; then
-            STATE="success"
-            DESC="merge:ready label applied"
+            echo "state=success" >> $GITHUB_OUTPUT
+            echo "desc=merge:ready label applied" >> $GITHUB_OUTPUT
           else
-            STATE="failure"
-            DESC="Waiting for merge:ready label"
+            echo "state=failure" >> $GITHUB_OUTPUT
+            echo "desc=Waiting for merge:ready label" >> $GITHUB_OUTPUT
           fi
 
+      - name: Report status to GitHub
+        run: |
           curl -s -o /dev/null -X POST \
             -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }}" \
             -d "{
-              \"state\": \"$STATE\",
+              \"state\": \"${{ steps.label.outputs.state }}\",
               \"context\": \"label/merge-ready\",
-              \"description\": \"$DESC\"
+              \"description\": \"${{ steps.label.outputs.desc }}\"
+            }"
+
+      - name: Post to Slack
+        if: steps.label.outputs.state == 'success'
+        run: |
+          REPO_NAME=$(basename "${{ github.repository }}")
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_URL="${{ github.event.pull_request.html_url }}"
+          AUTHOR="${{ github.event.pull_request.user.login }}"
+
+          RESPONSE=$(curl -s -X POST https://slack.com/api/chat.postMessage \
+            -H "Authorization: Bearer ${{ secrets.SLACK_BOT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"channel\": \"${{ secrets.SLACK_RELEASE_CHANNEL_ID }}\",
+              \"text\": \":rocket: *${REPO_NAME}* PR #${PR_NUMBER} is ready to merge\",
+              \"blocks\": [
+                {
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \":rocket: *<${PR_URL}|${REPO_NAME} #${PR_NUMBER}>*\n*${PR_TITLE}*\nby @${AUTHOR}\"
+                  }
+                }
+              ]
+            }")
+
+          # Save thread_ts for future replies
+          THREAD_TS=$(echo $RESPONSE | jq -r '.ts')
+          curl -s -o /dev/null -X POST \
+            -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/variables" \
+            -d "{
+              \"name\": \"SLACK_THREAD_PR_${PR_NUMBER}\",
+              \"value\": \"${THREAD_TS}\"
             }"
