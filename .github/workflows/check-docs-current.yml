@@ -37,9 +37,9 @@ jobs:
           echo "BASE: $BASE"
           echo "HEAD: $HEAD"
           echo "LAST_DOCS: $LAST_DOCS"
-          echo "--- files touched in range ---"
+          echo "--- all files touched in range ---"
           echo "$CHANGED"
-          echo "--- after filtering ---"
+          echo "--- relevant files ---"
           echo "$RELEVANT"
 
           if [[ -z "$RELEVANT" ]]; then
