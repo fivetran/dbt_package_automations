@@ -7,36 +7,40 @@ jobs:
   check-docs:
     runs-on: ubuntu-latest
     steps:
-      - name: Determine whether docs are required
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine whether docs are current
         id: check
         run: |
-          PR=${{ github.event.pull_request.number }}
-          REPO=${{ github.repository }}
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          # We don't need fresh docs if only these files were updated
+          IRRELEVANT='\.md$|^\.quickstart/|^images/|^integration_tests/|^\.github/|^docs/'
 
-          # All files changed in the PR (paginated — 100 is usually enough)
-          CHANGED=$(curl -s \
-            -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
-            "https://api.github.com/repos/${REPO}/pulls/${PR}/files?per_page=100" \
-            | jq -r '.[].filename')
+          # Most recent commit in this PR that touched docs/
+          LAST_DOCS=$(git log --format=%H "$BASE..$HEAD" -- docs/ | head -1)
 
-          # Files that don't affect dbt docs output
-          IRRELEVANT='\.md$|^\.quickstart/|^\images/|^\integration_tests/|^\.github/|^docs/'
+          if [[ -z "$LAST_DOCS" ]]; then
+            # Docs never generated in this PR — compare the whole PR
+            CHANGED=$(git diff --name-only "$BASE..$HEAD")
+          else
+            # Docs were generated — only look at what changed since
+            CHANGED=$(git diff --name-only "$LAST_DOCS..$HEAD")
+          fi
+
           RELEVANT=$(echo "$CHANGED" | grep -vE "$IRRELEVANT" || true)
 
           if [[ -z "$RELEVANT" ]]; then
-            echo "Only docs-irrelevant files changed — no regeneration needed"
             echo "state=success" >> $GITHUB_OUTPUT
-            echo "desc=No docs-relevant changes" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Docs-relevant changes exist — require that docs/ was updated
-          if echo "$CHANGED" | grep -q '^docs/'; then
-            echo "state=success" >> $GITHUB_OUTPUT
-            echo "desc=Docs generated" >> $GITHUB_OUTPUT
+            echo "desc=Docs current" >> $GITHUB_OUTPUT
           else
+            echo "Docs-relevant changes found:"
+            echo "$RELEVANT"
             echo "state=pending" >> $GITHUB_OUTPUT
-            echo "desc=Docs not yet generated — apply docs:ready" >> $GITHUB_OUTPUT
+            echo "desc=Docs-relevant changes since last generation - apply docs:ready" >> $GITHUB_OUTPUT
           fi
 
       - name: Report status
