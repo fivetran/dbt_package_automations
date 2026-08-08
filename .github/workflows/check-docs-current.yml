@@ -26,10 +26,10 @@ jobs:
 
           if [[ -z "$LAST_DOCS" ]]; then
             # Docs never generated in this PR — look at every commit in the PR
-            CHANGED=$(git log --format= --name-only "$BASE..$HEAD" | sort -u | grep -v '^$')
+            CHANGED=$(git log --format= --name-only "$BASE..$HEAD" | sort -u | grep -v '^$' || true)
           else
             # Docs were generated — look at every commit since
-            CHANGED=$(git log --format= --name-only "$LAST_DOCS..$HEAD" | sort -u | grep -v '^$')
+            CHANGED=$(git log --format= --name-only "$LAST_DOCS..$HEAD" | sort -u | grep -v '^$' || true)
           fi
 
           RELEVANT=$(echo "$CHANGED" | grep -vE "$IRRELEVANT" || true)
@@ -70,4 +70,3 @@ jobs:
 
           echo "Posted state: ${{ steps.check.outputs.state }}"
           echo "$RESPONSE" | jq -r '"API returned: \(.state) at \(.created_at)"'
-          
