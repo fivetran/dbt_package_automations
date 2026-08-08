@@ -50,6 +50,13 @@ jobs:
             echo "desc=Docs-relevant changes since last generation - apply docs:ready" >> $GITHUB_OUTPUT
           fi
 
+      - name: Remove docs:ready label if docs are stale
+        if: steps.check.outputs.state == 'failure'
+        run: |
+          curl -s -o /dev/null -X DELETE \
+            -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels/docs:ready"
+
       - name: Report status
         run: |
           RESPONSE=$(curl -s -X POST \
@@ -63,3 +70,4 @@ jobs:
 
           echo "Posted state: ${{ steps.check.outputs.state }}"
           echo "$RESPONSE" | jq -r '"API returned: \(.state) at \(.created_at)"'
+          
