@@ -136,28 +136,21 @@ jobs:
       env:
         BRANCH_NAME: ${{ steps.pr.outputs.branch }}
 
-    - name: Report docs status to GitHub
-      if: always()
+    - name: Report docs failure to GitHub
+      if: failure()
       run: |
-        # Use the pushed SHA if available, fall back to trigger SHA
-        SHA="${{ steps.push.outputs.new_sha }}"
-        if [[ -z "$SHA" ]]; then
-          SHA="${{ github.sha }}"
-        fi
-
-        if [[ "${{ job.status }}" == "success" ]]; then
-          STATE="success"
-          DESC="Docs successfully generated and committed"
-        else
-          STATE="failure"
-          DESC="Docs generation failed"
-        fi
-
-        curl -X POST \
+        curl -s -o /dev/null -X POST \
           -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
-          "https://api.github.com/repos/${{ github.repository }}/statuses/${SHA}" \
+          "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
           -d "{
-            \"state\": \"$STATE\",
+            \"state\": \"failure\",
             \"context\": \"docs/generated\",
-            \"description\": \"$DESC\"
+            \"description\": \"Docs generation failed - retry the docs generator\"
           }"
+
+    - name: Remove docs:ready label on failure
+      if: failure()
+      run: |
+        curl -s -o /dev/null -X DELETE \
+          -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+          "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels/docs:ready"
