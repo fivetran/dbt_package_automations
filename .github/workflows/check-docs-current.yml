@@ -25,11 +25,11 @@ jobs:
           LAST_DOCS=$(git log --format=%H "$BASE..$HEAD" -- docs/ | head -1)
 
           if [[ -z "$LAST_DOCS" ]]; then
-            # Docs never generated in this PR — compare the whole PR
-            CHANGED=$(git diff --name-only "$BASE..$HEAD")
+            # Docs never generated in this PR — look at every commit in the PR
+            CHANGED=$(git log --format= --name-only "$BASE..$HEAD" | sort -u | grep -v '^$')
           else
-            # Docs were generated — only look at what changed since
-            CHANGED=$(git diff --name-only "$LAST_DOCS..$HEAD")
+            # Docs were generated — look at every commit since
+            CHANGED=$(git log --format= --name-only "$LAST_DOCS..$HEAD" | sort -u | grep -v '^$')
           fi
 
           RELEVANT=$(echo "$CHANGED" | grep -vE "$IRRELEVANT" || true)
@@ -37,7 +37,7 @@ jobs:
           echo "BASE: $BASE"
           echo "HEAD: $HEAD"
           echo "LAST_DOCS: $LAST_DOCS"
-          echo "--- changed files in range ---"
+          echo "--- files touched in range ---"
           echo "$CHANGED"
           echo "--- after filtering ---"
           echo "$RELEVANT"
