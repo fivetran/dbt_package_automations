@@ -17,19 +17,13 @@ jobs:
         run: |
           BASE="${{ github.event.pull_request.base.sha }}"
           HEAD="${{ github.event.pull_request.head.sha }}"
+
           # We don't need fresh docs if only these files were updated
           IRRELEVANT='\.md$|^\.quickstart/|^images/|^integration_tests/|^\.github/|^docs/'
 
           # Most recent commit in this PR that touched docs/
           LAST_DOCS=$(git log --format=%H "$BASE..$HEAD" -- docs/ | head -1)
-          echo "BASE: $BASE"
-          echo "HEAD: $HEAD"
-          echo "LAST_DOCS: $LAST_DOCS"
-          echo "--- changed files in range ---"
-          echo "$CHANGED"
-          echo "--- after filtering ---"
-          echo "$RELEVANT"
-          
+
           if [[ -z "$LAST_DOCS" ]]; then
             # Docs never generated in this PR — compare the whole PR
             CHANGED=$(git diff --name-only "$BASE..$HEAD")
@@ -40,23 +34,32 @@ jobs:
 
           RELEVANT=$(echo "$CHANGED" | grep -vE "$IRRELEVANT" || true)
 
+          echo "BASE: $BASE"
+          echo "HEAD: $HEAD"
+          echo "LAST_DOCS: $LAST_DOCS"
+          echo "--- changed files in range ---"
+          echo "$CHANGED"
+          echo "--- after filtering ---"
+          echo "$RELEVANT"
+
           if [[ -z "$RELEVANT" ]]; then
             echo "state=success" >> $GITHUB_OUTPUT
             echo "desc=Docs current" >> $GITHUB_OUTPUT
           else
-            echo "Docs-relevant changes found:"
-            echo "$RELEVANT"
-            echo "state=pending" >> $GITHUB_OUTPUT
+            echo "state=failure" >> $GITHUB_OUTPUT
             echo "desc=Docs-relevant changes since last generation - apply docs:ready" >> $GITHUB_OUTPUT
           fi
 
       - name: Report status
         run: |
-          curl -s -o /dev/null -X POST \
+          RESPONSE=$(curl -s -X POST \
             -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }}" \
             -d "{
               \"state\": \"${{ steps.check.outputs.state }}\",
               \"context\": \"docs/generated\",
               \"description\": \"${{ steps.check.outputs.desc }}\"
-            }"
+            }")
+
+          echo "Posted state: ${{ steps.check.outputs.state }}"
+          echo "$RESPONSE" | jq -r '"API returned: \(.state) at \(.created_at)"'
