@@ -22,7 +22,14 @@ jobs:
 
           # Most recent commit in this PR that touched docs/
           LAST_DOCS=$(git log --format=%H "$BASE..$HEAD" -- docs/ | head -1)
-
+          echo "BASE: $BASE"
+          echo "HEAD: $HEAD"
+          echo "LAST_DOCS: $LAST_DOCS"
+          echo "--- changed files in range ---"
+          echo "$CHANGED"
+          echo "--- after filtering ---"
+          echo "$RELEVANT"
+          
           if [[ -z "$LAST_DOCS" ]]; then
             # Docs never generated in this PR — compare the whole PR
             CHANGED=$(git diff --name-only "$BASE..$HEAD")
