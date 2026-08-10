@@ -1,0 +1,72 @@
+name: Check docs current
+
+on:
+  workflow_call:
+
+jobs:
+  check-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine whether docs are current
+        id: check
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+
+          # We don't need fresh docs if only these files were updated
+          IRRELEVANT='\.md$|^\.quickstart/|^images/|^integration_tests/|^\.github/|^docs/'
+
+          # Most recent commit in this PR that touched docs/
+          LAST_DOCS=$(git log --format=%H "$BASE..$HEAD" -- docs/ | head -1)
+
+          if [[ -z "$LAST_DOCS" ]]; then
+            # Docs never generated in this PR — look at every commit in the PR
+            CHANGED=$(git log --format= --name-only "$BASE..$HEAD" | sort -u | grep -v '^$' || true)
+          else
+            # Docs were generated — look at every commit since
+            CHANGED=$(git log --format= --name-only "$LAST_DOCS..$HEAD" | sort -u | grep -v '^$' || true)
+          fi
+
+          RELEVANT=$(echo "$CHANGED" | grep -vE "$IRRELEVANT" || true)
+
+          echo "BASE: $BASE"
+          echo "HEAD: $HEAD"
+          echo "LAST_DOCS: $LAST_DOCS"
+          echo "--- all files touched in range ---"
+          echo "$CHANGED"
+          echo "--- relevant files ---"
+          echo "$RELEVANT"
+
+          if [[ -z "$RELEVANT" ]]; then
+            echo "state=success" >> $GITHUB_OUTPUT
+            echo "desc=Docs current" >> $GITHUB_OUTPUT
+          else
+            echo "state=failure" >> $GITHUB_OUTPUT
+            echo "desc=Docs-relevant changes since last generation - apply docs:ready" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Remove docs:ready label if docs are stale
+        if: steps.check.outputs.state == 'failure'
+        run: |
+          curl -s -o /dev/null -X DELETE \
+            -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels/docs:ready"
+
+      - name: Report status
+        run: |
+          RESPONSE=$(curl -s -X POST \
+            -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }}" \
+            -d "{
+              \"state\": \"${{ steps.check.outputs.state }}\",
+              \"context\": \"docs/generated\",
+              \"description\": \"${{ steps.check.outputs.desc }}\"
+            }")
+
+          echo "Posted state: ${{ steps.check.outputs.state }}"
+          echo "$RESPONSE" | jq -r '"API returned: \(.state) at \(.created_at)"'
