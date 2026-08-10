@@ -1,5 +1,12 @@
 # dbt Package Automations Changelog
 
+## v1.0.2 [2026-08-07]
+- [PR #38](https://github.com/fivetran/dbt_package_automations/pull/38)
+
+### Under the Hood
+- Added `check-merge-ready.yml` workflow that checks for the `merge:ready` label on a pull request and reports the result as a GitHub commit status (`label/merge-ready`).
+- Updated `generate-docs.yml` to post a `docs/generated` commit status after the docs generation job completes, indicating whether docs were successfully generated and committed.
+
 ## v1.0.1 [2026-07-07]
 - [PR #37](https://github.com/fivetran/dbt_package_automations/pull/37)
 
