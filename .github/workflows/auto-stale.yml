@@ -1,0 +1,87 @@
+name: Mark stale issues and PRs
+
+on:
+  workflow_call:
+    inputs:
+      stale_days:
+        description: "Days of inactivity before marking stale"
+        type: number
+        required: false
+        default: 30
+      close_days:
+        description: "Days after being marked stale before auto-closing (issues only)"
+        type: number
+        required: false
+        default: 90
+      stale_message:
+        description: "Message to post when marking items stale"
+        type: string
+        required: false
+        default: "This has been automatically marked **stale** because there hasn't been activity for **{stale_days} days**.\n\nIf this is still relevant, please add an update or apply **{pinned_label}**."
+      close_message:
+        description: "Message to post when closing stale items"
+        type: string
+        required: false
+        default: "Closing this issue because it has been marked **stale** for **{close_days} days** with no activity.\n\nIf this should stay open, please re-open and apply **{pinned_label}**."
+      team_mention:
+        description: "Team to mention in stale messages (e.g. @fivetran/solutions)"
+        type: string
+        required: false
+        default: "@fivetran/solutions"
+      stale_label:
+        description: "Label to apply to stale items"
+        type: string
+        required: false
+        default: "stale"
+      pinned_label:
+        description: "Label that prevents items from being marked stale"
+        type: string
+        required: false
+        default: "pinned"
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout dbt_package_automations
+        uses: actions/checkout@v4
+        with:
+          repository: fivetran/dbt_package_automations
+          path: dbt_package_automations
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run stale bot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STALE_DAYS: ${{ inputs.stale_days }}
+          CLOSE_DAYS: ${{ inputs.close_days }}
+          STALE_MESSAGE: ${{ inputs.stale_message }}
+          CLOSE_MESSAGE: ${{ inputs.close_message }}
+          TEAM_MENTION: ${{ inputs.team_mention }}
+          STALE_LABEL: ${{ inputs.stale_label }}
+          PINNED_LABEL: ${{ inputs.pinned_label }}
+        run: python dbt_package_automations/.github/scripts/mark-stale.py
+
+# Per repo scripts
+# name: Mark stale issues and PRs
+
+# on:
+#   schedule:
+#     - cron: "0 13 * * *"   # 1:00 PM UTC = 7:00 AM CST / 8:00 AM CDT
+#   workflow_dispatch: {}
+
+# jobs:
+#   stale:
+#     uses: fivetran/dbt_package_automations/.github/workflows/auto-stale.yml@main
+#     permissions:
+#       issues: write
+#       pull-requests: write
+#     secrets: inherit
