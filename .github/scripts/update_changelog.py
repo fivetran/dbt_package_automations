@@ -24,13 +24,44 @@ from pathlib import Path
 import yaml
 
 CHANGES_DIR = Path(".changes")
+CONFIG_PATH = CHANGES_DIR / "config.yaml"
 CHANGELOG_PATH = Path("CHANGELOG.md")
 RETENTION_DAYS = 30
 
-REPO = os.environ.get("GITHUB_REPOSITORY", "fivetran/dbt_package_automations")
-PACKAGE = REPO.split("/")[-1]
+DEFAULT_SECTION_HEADINGS = {
+    "schema_data_changes": "Schema/Data Change",
+    "new_features": "Feature Update",
+    "bug_fixes": "Bug Fix",
+    "dependencies": "Dependency Updates",
+    "under_the_hood": "Under the Hood",
+    "contributors": "Contributors",
+}
 
 VERSION_HEADER_RE = re.compile(r"^#+\s.*\bv\d+(\.\d+)*\b")
+
+
+def load_config() -> dict:
+    """Load .changes/config.yaml (package, repo_url, section headings).
+
+    Falls back to GITHUB_REPOSITORY and the default headings above when the
+    file is missing or a field is unset, so this still works before a repo
+    has added its own config.
+    """
+    config = yaml.safe_load(CONFIG_PATH.read_text()) if CONFIG_PATH.exists() else {}
+    config = config or {}
+
+    repo_env = os.environ.get("GITHUB_REPOSITORY", "fivetran/dbt_package_automations")
+    config.setdefault("package", repo_env.split("/")[-1])
+    config.setdefault("repo_url", f"https://github.com/{repo_env}")
+
+    headings = dict(DEFAULT_SECTION_HEADINGS)
+    for section in config.get("sections") or []:
+        key, heading = section.get("key"), section.get("heading")
+        if key and heading:
+            headings[key] = heading
+    config["headings"] = headings
+
+    return config
 
 
 def render_bullets(items: list) -> list[str]:
@@ -78,23 +109,70 @@ def discover_pending_yaml(changelog_text: str) -> Path | None:
     return None
 
 
-def render_markdown(entry: dict) -> str:
+def normalize_dependency(item) -> dict:
+    """A dependency is either a plain string, or a structured bump record:
+    {package, old_version, new_version, description, is_breaking, hide_from_docs}.
+    Structured records render as "Bumps `package` from X to Y — description".
+    """
+    if isinstance(item, str):
+        return {"description": item}
+
+    package = item.get("package")
+    old_version = item.get("old_version")
+    new_version = item.get("new_version")
+    description = item.get("description", "")
+
+    if package and old_version and new_version:
+        text = f"Bumps `{package}` from {old_version} to {new_version}"
+        if description:
+            text += f" — {description}"
+    else:
+        text = description
+
+    return {"description": text, "details": item.get("details")}
+
+
+def render_contributor_bullets(contributors: list, pr_number, repo_url: str) -> list[str]:
+    """A contributor is either a bare GitHub handle, or a structured record:
+    {name, github_handle, is_fivetran, contribution, hide_from_docs}.
+    """
+    lines = []
+    for contributor in contributors:
+        if isinstance(contributor, str):
+            contributor = {"github_handle": contributor}
+
+        handle = (contributor.get("github_handle") or "").lstrip("@")
+        line = f"- [@{handle}](https://github.com/{handle})" if handle else "-"
+        if pr_number:
+            line += f" ([PR #{pr_number}]({repo_url}/pull/{pr_number}))"
+
+        suffix = ": ".join(part for part in [contributor.get("name"), contributor.get("contribution")] if part)
+        if suffix:
+            line += f" — {suffix}"
+
+        lines.append(line)
+    return lines
+
+
+def render_markdown(entry: dict, config: dict) -> str:
     version = entry.get("version", "0.0.0")
     pr_number = (entry.get("pr") or {}).get("number")
+    headings = config["headings"]
+    repo_url = config["repo_url"]
 
-    lines = [f"# {PACKAGE} v{version}", ""]
+    lines = [f"# {config['package']} v{version}", ""]
     if pr_number:
-        lines.append(f"[PR #{pr_number}](https://github.com/{REPO}/pull/{pr_number}) includes the following updates:")
+        lines.append(f"[PR #{pr_number}]({repo_url}/pull/{pr_number}) includes the following updates:")
         lines.append("")
 
     schema_entries = (entry.get("schema_data_changes") or {}).get("entries") or []
     if schema_entries:
-        header = "## Schema/Data Change"
+        header = f"## {headings['schema_data_changes']}"
         if entry.get("is_breaking"):
             header += " (--full-refresh required after upgrading)"
         lines.append(header)
 
-        breaking_count = sum(1 for item in schema_entries if item.get("breaking"))
+        breaking_count = sum(1 for item in schema_entries if item.get("is_breaking"))
         change_word = "change" if len(schema_entries) == 1 else "changes"
         breaking_word = "change" if breaking_count == 1 else "changes"
         lines.append(f"**{len(schema_entries)} total {change_word} • {breaking_count} possible breaking {breaking_word}**")
@@ -103,49 +181,44 @@ def render_markdown(entry: dict) -> str:
         lines.append("| ------------- | ----------- | --- | --- | ----- |")
 
         # Breaking changes must be listed first.
-        for item in sorted(schema_entries, key=lambda e: not e.get("breaking")):
-            model = item.get("model", "")
-            if item.get("breaking"):
-                model = f"{model} (Breaking)" if model else "Breaking"
+        for item in sorted(schema_entries, key=lambda e: not e.get("is_breaking")):
+            models = ", ".join(m.get("name", "") for m in item.get("models") or [])
+            if item.get("is_breaking"):
+                models = f"{models} (Breaking)" if models else "Breaking"
             lines.append(
-                f"| {model} | {item.get('change_type', '')} | {item.get('old', '')} "
-                f"| {item.get('new', '')} | {item.get('notes', '')} |"
+                f"| {models} | {item.get('change_type', '')} | {item.get('old') or ''} "
+                f"| {item.get('new') or ''} | {item.get('notes') or ''} |"
             )
         lines.append("")
 
     new_features = entry.get("new_features") or []
     if new_features:
-        lines.append("## Feature Update")
+        lines.append(f"## {headings['new_features']}")
         lines.extend(render_bullets(new_features))
         lines.append("")
 
     bug_fixes = entry.get("bug_fixes") or []
     if bug_fixes:
-        lines.append("## Bug Fix")
+        lines.append(f"## {headings['bug_fixes']}")
         lines.extend(render_bullets(bug_fixes))
         lines.append("")
 
     dependencies = entry.get("dependencies") or []
     if dependencies:
-        lines.append("## Dependency Updates")
-        lines.extend(render_bullets(dependencies))
+        lines.append(f"## {headings['dependencies']}")
+        lines.extend(render_bullets([normalize_dependency(item) for item in dependencies]))
         lines.append("")
 
     under_the_hood = entry.get("under_the_hood") or []
     if under_the_hood:
-        lines.append("## Under the Hood")
+        lines.append(f"## {headings['under_the_hood']}")
         lines.extend(render_bullets(under_the_hood))
         lines.append("")
 
     contributors = entry.get("contributors") or []
     if contributors:
-        lines.append("## Contributors")
-        for handle in contributors:
-            handle = handle.lstrip("@")
-            line = f"- [@{handle}](https://github.com/{handle})"
-            if pr_number:
-                line += f" ([PR #{pr_number}](https://github.com/{REPO}/pull/{pr_number}))"
-            lines.append(line)
+        lines.append(f"## {headings['contributors']}")
+        lines.extend(render_contributor_bullets(contributors, pr_number, repo_url))
         lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
@@ -201,7 +274,7 @@ def main() -> None:
     entry.setdefault("date", date.today().isoformat())
     yaml_path.write_text(yaml.safe_dump(entry, sort_keys=False))
 
-    rendered = render_markdown(entry)
+    rendered = render_markdown(entry, load_config())
     prepend_to_changelog(rendered)
 
     enforce_retention()
