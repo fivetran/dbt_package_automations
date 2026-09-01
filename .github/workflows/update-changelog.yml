@@ -1,0 +1,45 @@
+name: Update Changelog
+
+# POC scope: single working YAML in, basic Markdown render
+# prepended to CHANGELOG.md.
+#
+# Called by downstream package repos when the "changelog:ready" label is
+# added to a PR (see caller snippet below / README), or run manually via
+# workflow_dispatch for local testing. Commits back to the PR's head branch.
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: write
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref }}
+
+      - name: Fetch main
+        run: git fetch --depth=1 origin main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Update CHANGELOG.md
+        run: python .github/scripts/update_changelog.py
+
+      - name: Commit and push generated files
+        run: |
+          git config --global user.name "fivetran-data-model-bot"
+          git config --global user.email "fivetran-data-model-bot@users.noreply.github.com"
+          git add -A .changes/ CHANGELOG.md
+          git commit -m "Update CHANGELOG.md" || echo "No changes to commit"
+          git push

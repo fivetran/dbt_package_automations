@@ -1,0 +1,14 @@
+version: 1.6.1
+pr:
+  number: 143
+is_breaking: false
+new_features:
+  - title: Example feature
+    description: Does a thing.
+bug_fixes:
+  - description: Fixes a thing that was broken.
+schema_data_changes:
+  entries: []
+dependencies: []
+under_the_hood: []
+contributors: []
