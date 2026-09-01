@@ -134,7 +134,10 @@ def normalize_dependency(item) -> dict:
 
 def render_contributor_bullets(contributors: list, pr_number, repo_url: str) -> list[str]:
     """A contributor is either a bare GitHub handle, or a structured record:
-    {name, github_handle, is_fivetran, contribution, hide_from_docs}.
+    {name, github_handle, is_fivetran, contribution, pr_number, hide_from_docs}.
+
+    A contributor's own `pr_number` (e.g. they contributed via a different PR
+    than the one driving this release) overrides the release-level pr_number.
     """
     lines = []
     for contributor in contributors:
@@ -143,8 +146,10 @@ def render_contributor_bullets(contributors: list, pr_number, repo_url: str) -> 
 
         handle = (contributor.get("github_handle") or "").lstrip("@")
         line = f"- [@{handle}](https://github.com/{handle})" if handle else "-"
-        if pr_number:
-            line += f" ([PR #{pr_number}]({repo_url}/pull/{pr_number}))"
+
+        contributor_pr = contributor.get("pr_number") or pr_number
+        if contributor_pr:
+            line += f" ([PR #{contributor_pr}]({repo_url}/pull/{contributor_pr}))"
 
         suffix = ": ".join(part for part in [contributor.get("name"), contributor.get("contribution")] if part)
         if suffix:
@@ -156,7 +161,7 @@ def render_contributor_bullets(contributors: list, pr_number, repo_url: str) -> 
 
 def render_markdown(entry: dict, config: dict) -> str:
     version = entry.get("version", "0.0.0")
-    pr_number = (entry.get("pr") or {}).get("number")
+    pr_number = entry.get("pr_number")
     headings = config["headings"]
     repo_url = config["repo_url"]
 

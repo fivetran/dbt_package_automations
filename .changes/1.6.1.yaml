@@ -1,7 +1,6 @@
 version: 1.6.1
 is_breaking: true
-pr:
-  number: 143
+pr_number: 143
 schema_data_changes:
   entries:
     - models:
