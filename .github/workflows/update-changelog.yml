@@ -25,19 +25,13 @@ jobs:
       - name: Fetch main
         run: git fetch --depth=1 origin main
 
-      - name: Resolve dbt_package_automations ref
-        id: automations_ref
-        run: |
-          # github.workflow_ref looks like "fivetran/dbt_package_automations/.github/workflows/update-changelog.yml@<ref>"
-          # Extract the ref so we fetch the same version of the script that the caller pinned.
-          REF="${{ github.workflow_ref }}"
-          REF="${REF#*@}"
-          echo "ref=$REF" >> "$GITHUB_OUTPUT"
-
       - name: Download update_changelog.py
+        # Hardcoded to the POC test branch for now. github.workflow_ref reflects the
+        # top-level caller's workflow ref, not this reusable workflow's own ref, so it
+        # can't be used to derive this dynamically. Update this ref once merged to main.
         run: |
           curl -sSfL \
-            "https://raw.githubusercontent.com/fivetran/dbt_package_automations/${{ steps.automations_ref.outputs.ref }}/.github/scripts/update_changelog.py" \
+            "https://raw.githubusercontent.com/fivetran/dbt_package_automations/refs/heads/changelog-poc/initial-test/.github/scripts/update_changelog.py" \
             -o /tmp/update_changelog.py
 
       - name: Set up Python
