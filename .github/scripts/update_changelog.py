@@ -33,6 +33,26 @@ PACKAGE = REPO.split("/")[-1]
 VERSION_HEADER_RE = re.compile(r"^#+\s.*\bv\d+(\.\d+)*\b")
 
 
+def render_bullets(items: list) -> list[str]:
+    """Render a list of changelog items as bullets, with optional nested sub-bullets.
+
+    Each item is either a plain string, or an object with:
+      description (required): the bullet text
+      title (optional): bolded lead-in, e.g. "- **Title**: description"
+      details (optional): a list of strings rendered as indented sub-bullets
+    """
+    lines = []
+    for item in items:
+        if isinstance(item, str):
+            item = {"description": item}
+        title = item.get("title")
+        description = item.get("description", "")
+        lines.append(f"- **{title}**: {description}" if title else f"- {description}")
+        for detail in item.get("details") or []:
+            lines.append(f"  - {detail}")
+    return lines
+
+
 def fetch_main_changelog() -> str:
     try:
         result = subprocess.run(
@@ -96,31 +116,25 @@ def render_markdown(entry: dict) -> str:
     new_features = entry.get("new_features") or []
     if new_features:
         lines.append("## Feature Update")
-        for feature in new_features:
-            title = feature.get("title", "")
-            description = feature.get("description", "")
-            lines.append(f"- **{title}**: {description}" if title else f"- {description}")
+        lines.extend(render_bullets(new_features))
         lines.append("")
 
     bug_fixes = entry.get("bug_fixes") or []
     if bug_fixes:
         lines.append("## Bug Fix")
-        for fix in bug_fixes:
-            lines.append(f"- {fix.get('description', '')}")
+        lines.extend(render_bullets(bug_fixes))
         lines.append("")
 
     dependencies = entry.get("dependencies") or []
     if dependencies:
         lines.append("## Dependency Updates")
-        for item in dependencies:
-            lines.append(f"- {item}")
+        lines.extend(render_bullets(dependencies))
         lines.append("")
 
     under_the_hood = entry.get("under_the_hood") or []
     if under_the_hood:
         lines.append("## Under the Hood")
-        for item in under_the_hood:
-            lines.append(f"- {item}")
+        lines.extend(render_bullets(under_the_hood))
         lines.append("")
 
     contributors = entry.get("contributors") or []
