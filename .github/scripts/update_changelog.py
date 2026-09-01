@@ -109,9 +109,14 @@ def render_markdown(entry: dict) -> str:
             lines.append(f"- {fix.get('description', '')}")
         lines.append("")
 
-    # Dependency bumps don't have their own category in the standard section
-    # list, so they fold into Under the Hood alongside other non-user-facing changes.
-    under_the_hood = list(entry.get("dependencies") or []) + list(entry.get("under_the_hood") or [])
+    dependencies = entry.get("dependencies") or []
+    if dependencies:
+        lines.append("## Dependency Updates")
+        for item in dependencies:
+            lines.append(f"- {item}")
+        lines.append("")
+
+    under_the_hood = entry.get("under_the_hood") or []
     if under_the_hood:
         lines.append("## Under the Hood")
         for item in under_the_hood:
