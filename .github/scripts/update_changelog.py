@@ -16,6 +16,7 @@ Convention:
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from datetime import date, timedelta
 from pathlib import Path
@@ -27,6 +28,9 @@ CHANGELOG_PATH = Path("CHANGELOG.md")
 RETENTION_DAYS = 30
 
 REPO = os.environ.get("GITHUB_REPOSITORY", "fivetran/dbt_package_automations")
+PACKAGE = REPO.split("/")[-1]
+
+VERSION_HEADER_RE = re.compile(r"^#+\s.*\bv\d+(\.\d+)*\b")
 
 
 def fetch_main_changelog() -> str:
@@ -49,7 +53,7 @@ def discover_pending_yaml(changelog_text: str) -> Path | None:
         version = entry.get("version")
         if not version:
             continue
-        if f"## v{version} [" not in changelog_text:
+        if f"v{version}" not in changelog_text:
             return path
     return None
 
@@ -57,26 +61,25 @@ def discover_pending_yaml(changelog_text: str) -> Path | None:
 def render_markdown(entry: dict) -> str:
     version = entry.get("version", "0.0.0")
     pr_number = (entry.get("pr") or {}).get("number")
-    entry_date = entry.get("date", date.today().isoformat())
 
-    header = f"## v{version} [{entry_date}]"
-    if entry.get("is_breaking"):
-        header += " (Breaking Change)"
-    lines = [header]
+    lines = [f"# {PACKAGE} v{version}", ""]
     if pr_number:
-        lines.append(f"- [PR #{pr_number}](https://github.com/{REPO}/pull/{pr_number})")
-    lines.append("")
+        lines.append(f"[PR #{pr_number}](https://github.com/{REPO}/pull/{pr_number}) includes the following updates:")
+        lines.append("")
 
     schema_entries = (entry.get("schema_data_changes") or {}).get("entries") or []
     if schema_entries:
-        lines.append("### Schema/Data Change")
+        header = "## Schema/Data Change"
+        if entry.get("is_breaking"):
+            header += " (--full-refresh required after upgrading)"
+        lines.append(header)
         for item in schema_entries:
             lines.append(f"- {item}")
         lines.append("")
 
     new_features = entry.get("new_features") or []
     if new_features:
-        lines.append("### Feature Update")
+        lines.append("## Feature Update")
         for feature in new_features:
             title = feature.get("title", "")
             description = feature.get("description", "")
@@ -85,21 +88,16 @@ def render_markdown(entry: dict) -> str:
 
     bug_fixes = entry.get("bug_fixes") or []
     if bug_fixes:
-        lines.append("### Bug Fix")
+        lines.append("## Bug Fix")
         for fix in bug_fixes:
             lines.append(f"- {fix.get('description', '')}")
         lines.append("")
 
-    dependencies = entry.get("dependencies") or []
-    if dependencies:
-        lines.append("### Dependency Update")
-        for item in dependencies:
-            lines.append(f"- {item}")
-        lines.append("")
-
-    under_the_hood = entry.get("under_the_hood") or []
+    # Dependency bumps don't have their own category in the standard section
+    # list, so they fold into Under the Hood alongside other non-user-facing changes.
+    under_the_hood = list(entry.get("dependencies") or []) + list(entry.get("under_the_hood") or [])
     if under_the_hood:
-        lines.append("### Under the Hood")
+        lines.append("## Under the Hood")
         for item in under_the_hood:
             lines.append(f"- {item}")
         lines.append("")
@@ -114,18 +112,21 @@ def render_markdown(entry: dict) -> str:
 
 
 def prepend_to_changelog(rendered: str) -> None:
-    existing = CHANGELOG_PATH.read_text() if CHANGELOG_PATH.exists() else "# Changelog\n"
+    existing = CHANGELOG_PATH.read_text() if CHANGELOG_PATH.exists() else ""
     lines = existing.splitlines(keepends=True)
 
-    # Insert after the title/header (first line(s) starting with a single '#'),
-    # and any immediately following blank lines, above the first existing entry.
+    # Skip past a genuine document title (a leading '#' line with no version
+    # number, e.g. "# Package Changelog") and any blank lines after it, but
+    # stop immediately at the first line that looks like a release header
+    # (e.g. "# dbt_amazon_ads v1.3.1" or "## v1.0.2 [date]") so the new entry
+    # lands above it rather than inside it.
     insert_at = 0
-    while insert_at < len(lines) and lines[insert_at].startswith("# "):
+    while insert_at < len(lines) and lines[insert_at].startswith("#") and not VERSION_HEADER_RE.match(lines[insert_at]):
         insert_at += 1
     while insert_at < len(lines) and lines[insert_at].strip() == "":
         insert_at += 1
 
-    new_lines = lines[:insert_at] + ["\n", rendered, "\n"] + lines[insert_at:]
+    new_lines = lines[:insert_at] + [rendered, "\n"] + lines[insert_at:]
     CHANGELOG_PATH.write_text("".join(new_lines))
 
 
