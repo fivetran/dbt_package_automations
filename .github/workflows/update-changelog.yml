@@ -25,6 +25,21 @@ jobs:
       - name: Fetch main
         run: git fetch --depth=1 origin main
 
+      - name: Resolve dbt_package_automations ref
+        id: automations_ref
+        run: |
+          # github.workflow_ref looks like "fivetran/dbt_package_automations/.github/workflows/update-changelog.yml@<ref>"
+          # Extract the ref so we fetch the same version of the script that the caller pinned.
+          REF="${{ github.workflow_ref }}"
+          REF="${REF#*@}"
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+
+      - name: Download update_changelog.py
+        run: |
+          curl -sSfL \
+            "https://raw.githubusercontent.com/fivetran/dbt_package_automations/${{ steps.automations_ref.outputs.ref }}/.github/scripts/update_changelog.py" \
+            -o /tmp/update_changelog.py
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -34,7 +49,7 @@ jobs:
         run: pip install pyyaml
 
       - name: Update CHANGELOG.md
-        run: python .github/scripts/update_changelog.py
+        run: python /tmp/update_changelog.py
 
       - name: Commit and push generated files
         run: |
