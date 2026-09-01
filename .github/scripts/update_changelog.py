@@ -73,8 +73,24 @@ def render_markdown(entry: dict) -> str:
         if entry.get("is_breaking"):
             header += " (--full-refresh required after upgrading)"
         lines.append(header)
-        for item in schema_entries:
-            lines.append(f"- {item}")
+
+        breaking_count = sum(1 for item in schema_entries if item.get("breaking"))
+        change_word = "change" if len(schema_entries) == 1 else "changes"
+        breaking_word = "change" if breaking_count == 1 else "changes"
+        lines.append(f"**{len(schema_entries)} total {change_word} • {breaking_count} possible breaking {breaking_word}**")
+        lines.append("")
+        lines.append("| Data Model(s) | Change type | Old | New | Notes |")
+        lines.append("| ------------- | ----------- | --- | --- | ----- |")
+
+        # Breaking changes must be listed first.
+        for item in sorted(schema_entries, key=lambda e: not e.get("breaking")):
+            model = item.get("model", "")
+            if item.get("breaking"):
+                model = f"{model} (Breaking)" if model else "Breaking"
+            lines.append(
+                f"| {model} | {item.get('change_type', '')} | {item.get('old', '')} "
+                f"| {item.get('new', '')} | {item.get('notes', '')} |"
+            )
         lines.append("")
 
     new_features = entry.get("new_features") or []
@@ -104,8 +120,13 @@ def render_markdown(entry: dict) -> str:
 
     contributors = entry.get("contributors") or []
     if contributors:
-        formatted = ", ".join(c if c.startswith("@") else f"@{c}" for c in contributors)
-        lines.append(f"Thanks to {formatted} for the contribution!")
+        lines.append("## Contributors")
+        for handle in contributors:
+            handle = handle.lstrip("@")
+            line = f"- [@{handle}](https://github.com/{handle})"
+            if pr_number:
+                line += f" ([PR #{pr_number}](https://github.com/{REPO}/pull/{pr_number}))"
+            lines.append(line)
         lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
