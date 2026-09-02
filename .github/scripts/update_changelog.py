@@ -24,16 +24,12 @@ from pathlib import Path
 import yaml
 
 CHANGES_DIR = Path(".changes")
-CONFIG_PATH = CHANGES_DIR / "config.yml"
 CHANGELOG_PATH = Path("CHANGELOG.md")
 RETENTION_DAYS = 30
 
-
-def release_yaml_files() -> list[Path]:
-    return sorted(p for p in CHANGES_DIR.glob("*.yml") if p != CONFIG_PATH)
-
-
-DEFAULT_SECTION_HEADINGS = {
+# Standard section headings, in render order. Hardcoded here rather than
+# per-repo configurable, so every package's changelog stays consistent.
+SECTION_HEADINGS = {
     "schema_data_changes": "Schema/Data Change",
     "new_features": "Feature Update",
     "bug_fixes": "Bug Fix",
@@ -45,28 +41,14 @@ DEFAULT_SECTION_HEADINGS = {
 VERSION_HEADER_RE = re.compile(r"^#+\s.*\bv\d+(\.\d+)*\b")
 
 
-def load_config() -> dict:
-    """Load .changes/config.yml (package, repo_url, section headings).
+def release_yaml_files() -> list[Path]:
+    return sorted(CHANGES_DIR.glob("*.yml"))
 
-    Falls back to GITHUB_REPOSITORY and the default headings above when the
-    file is missing or a field is unset, so this still works before a repo
-    has added its own config.
-    """
-    config = yaml.safe_load(CONFIG_PATH.read_text()) if CONFIG_PATH.exists() else {}
-    config = config or {}
 
+def repo_info() -> tuple[str, str]:
+    """Return (package, repo_url) derived from GITHUB_REPOSITORY."""
     repo_env = os.environ.get("GITHUB_REPOSITORY", "fivetran/dbt_package_automations")
-    config.setdefault("package", repo_env.split("/")[-1])
-    config.setdefault("repo_url", f"https://github.com/{repo_env}")
-
-    headings = dict(DEFAULT_SECTION_HEADINGS)
-    for section in config.get("sections") or []:
-        key, heading = section.get("key"), section.get("heading")
-        if key and heading:
-            headings[key] = heading
-    config["headings"] = headings
-
-    return config
+    return repo_env.split("/")[-1], f"https://github.com/{repo_env}"
 
 
 def render_bullets(items: list) -> list[str]:
@@ -163,13 +145,13 @@ def render_contributor_bullets(contributors: list, pr_number, repo_url: str) -> 
     return lines
 
 
-def render_markdown(entry: dict, config: dict) -> str:
+def render_markdown(entry: dict) -> str:
     version = entry.get("version", "0.0.0")
     pr_number = entry.get("pr_number")
-    headings = config["headings"]
-    repo_url = config["repo_url"]
+    headings = SECTION_HEADINGS
+    package, repo_url = repo_info()
 
-    lines = [f"# {config['package']} v{version}", ""]
+    lines = [f"# {package} v{version}", ""]
     if pr_number:
         lines.append(f"[PR #{pr_number}]({repo_url}/pull/{pr_number}) includes the following updates:")
         lines.append("")
@@ -283,7 +265,7 @@ def main() -> None:
     entry.setdefault("date", date.today().isoformat())
     yaml_path.write_text(yaml.safe_dump(entry, sort_keys=False))
 
-    rendered = render_markdown(entry, load_config())
+    rendered = render_markdown(entry)
     prepend_to_changelog(rendered)
 
     enforce_retention()
