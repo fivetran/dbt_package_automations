@@ -24,9 +24,17 @@ from pathlib import Path
 import yaml
 
 CHANGES_DIR = Path(".changes")
-CONFIG_PATH = CHANGES_DIR / "config.yaml"
+CONFIG_PATH = CHANGES_DIR / "config.yml"
 CHANGELOG_PATH = Path("CHANGELOG.md")
 RETENTION_DAYS = 30
+
+
+def release_yaml_files() -> list[Path]:
+    # Accept both .yml and .yaml so this doesn't silently miss files if a
+    # repo's convention (or a future rename) differs from the other. Exclude
+    # config.yml/config.yaml regardless of which extension it uses.
+    candidates = list(CHANGES_DIR.glob("*.yml")) + list(CHANGES_DIR.glob("*.yaml"))
+    return sorted(p for p in candidates if p.stem != "config")
 
 DEFAULT_SECTION_HEADINGS = {
     "schema_data_changes": "Schema/Data Change",
@@ -41,13 +49,14 @@ VERSION_HEADER_RE = re.compile(r"^#+\s.*\bv\d+(\.\d+)*\b")
 
 
 def load_config() -> dict:
-    """Load .changes/config.yaml (package, repo_url, section headings).
+    """Load .changes/config.yml (or config.yaml) - package, repo_url, section headings.
 
     Falls back to GITHUB_REPOSITORY and the default headings above when the
     file is missing or a field is unset, so this still works before a repo
     has added its own config.
     """
-    config = yaml.safe_load(CONFIG_PATH.read_text()) if CONFIG_PATH.exists() else {}
+    config_path = CONFIG_PATH if CONFIG_PATH.exists() else CHANGES_DIR / "config.yaml"
+    config = yaml.safe_load(config_path.read_text()) if config_path.exists() else {}
     config = config or {}
 
     repo_env = os.environ.get("GITHUB_REPOSITORY", "fivetran/dbt_package_automations")
@@ -98,8 +107,7 @@ def fetch_main_changelog() -> str:
 
 
 def discover_pending_yaml(changelog_text: str) -> Path | None:
-    candidates = sorted(CHANGES_DIR.glob("*.yaml"))
-    for path in candidates:
+    for path in release_yaml_files():
         entry = yaml.safe_load(path.read_text()) or {}
         version = entry.get("version")
         if not version:
@@ -250,7 +258,7 @@ def prepend_to_changelog(rendered: str) -> None:
 
 def enforce_retention(days: int = RETENTION_DAYS) -> None:
     cutoff = date.today() - timedelta(days=days)
-    for path in CHANGES_DIR.glob("*.yaml"):
+    for path in release_yaml_files():
         entry = yaml.safe_load(path.read_text()) or {}
         entry_date = entry.get("date")
         if not entry_date:
@@ -271,7 +279,7 @@ def main() -> None:
 
     yaml_path = discover_pending_yaml(changelog_text)
     if yaml_path is None:
-        print("Nothing to add — every .changes/*.yaml version is already in CHANGELOG.md.")
+        print("Nothing to add — every .changes/*.yml version is already in CHANGELOG.md.")
         enforce_retention()
         return
 
