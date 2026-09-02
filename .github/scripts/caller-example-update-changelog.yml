@@ -11,6 +11,6 @@ on:
 
 jobs:
   update-changelog:
-    if: github.event.label.name == 'changelog:ready'
+    if: github.event.label.name == 'docs:ready'
     uses: fivetran/dbt_package_automations/.github/workflows/update-changelog.yml@changelog-poc/initial-test
     secrets: inherit
