@@ -191,9 +191,9 @@ def render_markdown(entry: dict, config: dict) -> str:
 
         # Breaking changes must be listed first.
         for item in sorted(schema_entries, key=lambda e: not e.get("is_breaking")):
-            models = ", ".join(m.get("name", "") for m in item.get("models") or [])
+            models = "<br>".join(m.get("name", "") for m in item.get("models") or [])
             if item.get("is_breaking"):
-                models = f"{models} (Breaking)" if models else "Breaking"
+                models = f"{models}<br>(Breaking)" if models else "(Breaking)"
             lines.append(
                 f"| {models} | {item.get('change_type', '')} | {item.get('old') or ''} "
                 f"| {item.get('new') or ''} | {item.get('notes') or ''} |"
