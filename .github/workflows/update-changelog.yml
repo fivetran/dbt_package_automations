@@ -3,7 +3,7 @@ name: Update Changelog
 # POC scope: single working YAML in, basic Markdown render
 # prepended to CHANGELOG.md.
 #
-# Called by downstream package repos when the "docs:ready" label is
+# Called by downstream package repos when the "changelog:ready" label is
 # added to a PR (see caller snippet below / README), or run manually via
 # workflow_dispatch for local testing. Commits back to the PR's head branch.
 on:
