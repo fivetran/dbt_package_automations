@@ -30,11 +30,8 @@ RETENTION_DAYS = 30
 
 
 def release_yaml_files() -> list[Path]:
-    # Accept both .yml and .yaml so this doesn't silently miss files if a
-    # repo's convention (or a future rename) differs from the other. Exclude
-    # config.yml/config.yaml regardless of which extension it uses.
-    candidates = list(CHANGES_DIR.glob("*.yml")) + list(CHANGES_DIR.glob("*.yaml"))
-    return sorted(p for p in candidates if p.stem != "config")
+    return sorted(p for p in CHANGES_DIR.glob("*.yml") if p != CONFIG_PATH)
+
 
 DEFAULT_SECTION_HEADINGS = {
     "schema_data_changes": "Schema/Data Change",
@@ -49,14 +46,13 @@ VERSION_HEADER_RE = re.compile(r"^#+\s.*\bv\d+(\.\d+)*\b")
 
 
 def load_config() -> dict:
-    """Load .changes/config.yml (or config.yaml) - package, repo_url, section headings.
+    """Load .changes/config.yml (package, repo_url, section headings).
 
     Falls back to GITHUB_REPOSITORY and the default headings above when the
     file is missing or a field is unset, so this still works before a repo
     has added its own config.
     """
-    config_path = CONFIG_PATH if CONFIG_PATH.exists() else CHANGES_DIR / "config.yaml"
-    config = yaml.safe_load(config_path.read_text()) if config_path.exists() else {}
+    config = yaml.safe_load(CONFIG_PATH.read_text()) if CONFIG_PATH.exists() else {}
     config = config or {}
 
     repo_env = os.environ.get("GITHUB_REPOSITORY", "fivetran/dbt_package_automations")
