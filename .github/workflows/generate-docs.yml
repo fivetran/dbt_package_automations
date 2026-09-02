@@ -140,6 +140,9 @@ jobs:
     - name: Commit and push docs and CHANGELOG.md to PR branch
       id: push
       run: |
+        # Ensure .changes/ exists even for repos that haven't adopted the
+        # convention yet - `git add` on a missing path fails the whole step.
+        mkdir -p .changes
         git config --global user.name "fivetran-data-model-bot"
         git config --global user.email "fivetran-data-model-bot@users.noreply.github.com"
         git add docs/ .changes/ CHANGELOG.md
