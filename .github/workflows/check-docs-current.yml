@@ -12,45 +12,63 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Determine whether docs are current
+      - name: Determine whether docs, CHANGELOG.md, and the changelog entry are current
         id: check
         run: |
           BASE="${{ github.event.pull_request.base.sha }}"
           HEAD="${{ github.event.pull_request.head.sha }}"
 
-          # We don't need fresh docs if only these files were updated
+          # We don't need fresh docs/changelog if only these files were updated
           IRRELEVANT='\.md$|^\.quickstart/|^images/|^integration_tests/|^\.github/|^docs/'
 
-          # Most recent commit in this PR that touched docs/
-          LAST_DOCS=$(git log --format=%H "$BASE..$HEAD" -- docs/ | head -1)
+          # Relevant changes made since the most recent commit (within this PR)
+          # that touched $1. Empty result means that thing is current; a
+          # non-empty result means something relevant changed after it was
+          # last updated (or it was never updated at all in this PR).
+          relevant_since_last_touch() {
+            local path_filter="$1"
+            local last
+            last=$(git log --format=%H "$BASE..$HEAD" -- "$path_filter" | head -1)
 
-          if [[ -z "$LAST_DOCS" ]]; then
-            # Docs never generated in this PR — look at every commit in the PR
-            CHANGED=$(git log --format= --name-only "$BASE..$HEAD" | sort -u | grep -v '^$' || true)
-          else
-            # Docs were generated — look at every commit since
-            CHANGED=$(git log --format= --name-only "$LAST_DOCS..$HEAD" | sort -u | grep -v '^$' || true)
-          fi
+            local changed
+            if [[ -z "$last" ]]; then
+              changed=$(git log --format= --name-only "$BASE..$HEAD" | sort -u | grep -v '^$' || true)
+            else
+              changed=$(git log --format= --name-only "$last..$HEAD" | sort -u | grep -v '^$' || true)
+            fi
 
-          RELEVANT=$(echo "$CHANGED" | grep -vE "$IRRELEVANT" || true)
+            echo "$changed" | grep -vE "$IRRELEVANT" || true
+          }
+
+          RELEVANT_DOCS=$(relevant_since_last_touch 'docs/')
+          RELEVANT_CHANGELOG=$(relevant_since_last_touch 'CHANGELOG.md')
+          RELEVANT_CHANGES_YML=$(relevant_since_last_touch '.changes/')
 
           echo "BASE: $BASE"
           echo "HEAD: $HEAD"
-          echo "LAST_DOCS: $LAST_DOCS"
-          echo "--- all files touched in range ---"
-          echo "$CHANGED"
-          echo "--- relevant files ---"
-          echo "$RELEVANT"
+          echo "--- relevant changes since docs/ last touched ---"
+          echo "$RELEVANT_DOCS"
+          echo "--- relevant changes since CHANGELOG.md last touched ---"
+          echo "$RELEVANT_CHANGELOG"
+          echo "--- relevant changes since .changes/ last touched ---"
+          echo "$RELEVANT_CHANGES_YML"
 
-          if [[ -z "$RELEVANT" ]]; then
+          MISSING=()
+          [[ -n "$RELEVANT_DOCS" ]] && MISSING+=("docs regeneration")
+          [[ -n "$RELEVANT_CHANGELOG" ]] && MISSING+=("CHANGELOG.md update")
+          [[ -n "$RELEVANT_CHANGES_YML" ]] && MISSING+=("a .changes/*.yml entry")
+
+          if [[ ${#MISSING[@]} -eq 0 ]]; then
             echo "state=success" >> $GITHUB_OUTPUT
-            echo "desc=Docs current" >> $GITHUB_OUTPUT
+            echo "desc=Docs and changelog current" >> $GITHUB_OUTPUT
           else
+            JOINED=$(printf '%s, ' "${MISSING[@]}")
+            JOINED=${JOINED%, }
             echo "state=failure" >> $GITHUB_OUTPUT
-            echo "desc=Docs-relevant changes since last generation - apply docs:ready" >> $GITHUB_OUTPUT
+            echo "desc=Missing: $JOINED - apply docs:ready" >> $GITHUB_OUTPUT
           fi
 
-      - name: Remove docs:ready label if docs are stale
+      - name: Remove docs:ready label if anything is stale or missing
         if: steps.check.outputs.state == 'failure'
         run: |
           curl -s -o /dev/null -X DELETE \
