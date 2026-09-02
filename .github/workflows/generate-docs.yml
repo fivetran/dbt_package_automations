@@ -123,13 +123,27 @@ jobs:
         cp integration_tests/target/index.html docs/
         cp integration_tests/target/manifest.json docs/
 
-    - name: Commit and push docs to PR branch
+    - name: Download update_changelog.py
+      # Hardcoded to the changelog POC test branch for now (see GA-1035597).
+      # Update this ref once that work lands on main.
+      run: |
+        curl -sSfL \
+          "https://raw.githubusercontent.com/fivetran/dbt_package_automations/refs/heads/changelog-poc/initial-test/.github/scripts/update_changelog.py" \
+          -o /tmp/update_changelog.py
+
+    - name: Install pyyaml
+      run: pip install pyyaml
+
+    - name: Update CHANGELOG.md
+      run: python /tmp/update_changelog.py
+
+    - name: Commit and push docs and CHANGELOG.md to PR branch
       id: push
       run: |
         git config --global user.name "fivetran-data-model-bot"
         git config --global user.email "fivetran-data-model-bot@users.noreply.github.com"
-        git add docs/
-        git commit -m "Generate dbt docs via GitHub Actions" || echo "No changes to commit"
+        git add docs/ .changes/ CHANGELOG.md
+        git commit -m "Generate dbt docs and update CHANGELOG.md via GitHub Actions" || echo "No changes to commit"
         git push origin "$BRANCH_NAME"
         # capture the SHA we just pushed
         echo "new_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
