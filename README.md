@@ -41,3 +41,47 @@ files are kept for 45 days after being rendered, then pruned automatically.
 `contributors`) and `is_breaking` on an individual `dependencies` item. These are intentionally
 inert here — they're reserved for a future docs-generation consumer of this same YAML, not for
 `CHANGELOG.md` rendering.
+
+### Example `.changes/1.3.0.yml`
+
+```yaml
+version: 1.3.0
+pr_number: 143
+is_breaking: true
+schema_data_changes:
+  entries:
+    - models:
+        - stripe__subscription_item_mrr_report
+      change_type: Changed data
+      old: Discount sourced from the `discount` table
+      new: Discount sourced from the `subscription_discount` table
+      is_breaking: false
+      notes: Affects discount-based MRR calculations for subscriptions with active coupons.
+      hide_from_docs: false
+    - models:
+        - stg_stripe__subscription_discount
+      change_type: New Staging Model
+      is_breaking: true
+      notes: Enabled by default; disable via variable configurability.
+new_features:
+  - title: Subscription discount source toggle
+    description: Adds the `stripe__using_subscription_discount` variable to disable the new staging model.
+bug_fixes:
+  - description: Removes `convert_values` from the `amount` calculation to prevent double conversion.
+    details:
+      - The prior logic applied currency conversion twice when `convert_values` was enabled upstream.
+dependencies:
+  - package: fivetran/stripe_source
+    old_version: ">=0.13.0,<0.14.0"
+    new_version: ">=0.14.0,<0.15.0"
+    description: Required for the new `subscription_discount` source definition.
+under_the_hood:
+  - description: Adds integration test seed files for subscription discount data.
+    hide_from_docs: true
+contributors:
+  - name: Jane Doe
+    github_handle: janedoe
+    contribution: Reported the double-conversion bug.
+```
+
+Only `version` is required — omit any section with nothing to report for this release.
