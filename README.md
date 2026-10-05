@@ -27,7 +27,7 @@ files are kept for 45 days after being rendered, then pruned automatically.
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `version` | string | Yes | e.g. `1.3.2`. Determines the filename convention (`.changes/1.3.2.yml`) and is used to detect whether this release is already in `CHANGELOG.md`. |
+| `version` | string | Yes | e.g. `1.3.2`. Determines the filename convention (`.changes/1.3.2.yml`) and is used to detect whether this release is already in `CHANGELOG.md`. Pre-releases use `-a1`, `-a2`, ... and betas use `-b1`, `-b2`, ... (e.g. `1.3.0-a1`, `1.3.0-b2`); these sort before that version's final release, in that order. |
 | `pr_number` | integer | No | Renders the `[PR #N](url) includes the following updates:` line, and is the default PR link for every contributor unless they set their own. |
 | `is_breaking` | boolean | No | Appends `(--full-refresh required after upgrading)` to the Schema/Data Change heading. |
 | `date` | string | No — set automatically | Stamped onto the file by the pipeline the first time it runs. Don't set this yourself. |

@@ -42,19 +42,34 @@ SECTION_HEADINGS = {
 
 VERSION_HEADER_RE = re.compile(r"^#+\s.*\bv\d+(\.\d+)*\b")
 
+# e.g. "1.3.0", "1.3.0-a1" (pre-release), "1.3.0-b2" (beta)
+VERSION_FILENAME_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:-([ab])(\d+))?$")
+
+# Pre-releases of a version sort before that version's final release:
+# 1.3.0-a1 < 1.3.0-a2 < 1.3.0-b1 < 1.3.0-b2 < 1.3.0
+_PRERELEASE_RANK = {"a": 0, "b": 1, None: 2}
+
 
 def _version_sort_key(path: Path) -> tuple:
-    """Numeric sort key from a filename like "1.10.1.yml" -> (1, 10, 1).
+    """Sort key from a filename like "1.10.1.yml" -> (1, 10, 1, 2, 0), or
+    "1.3.0-b2.yml" -> (1, 3, 0, 1, 2).
 
     Plain sorted() is lexical, so "1.10.1.yml" would sort before "1.9.0.yml".
-    Pre-release suffixes (e.g. "1.2.0-beta.1") aren't a supported filename
-    format yet - such a file sorts after all clean numeric versions rather
-    than raising, until that convention is decided.
+    An unrecognized filename sorts after every valid version rather than
+    raising.
     """
-    try:
-        return tuple(int(part) for part in path.stem.split("."))
-    except ValueError:
+    match = VERSION_FILENAME_RE.match(path.stem)
+    if not match:
         return (float("inf"),)
+
+    major, minor, patch, prerelease_type, prerelease_num = match.groups()
+    return (
+        int(major),
+        int(minor),
+        int(patch),
+        _PRERELEASE_RANK[prerelease_type],
+        int(prerelease_num) if prerelease_num else 0,
+    )
 
 
 def release_yaml_files() -> list[Path]:
