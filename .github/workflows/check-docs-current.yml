@@ -61,11 +61,20 @@ jobs:
           if [[ ${#MISSING[@]} -eq 0 ]]; then
             echo "state=success" >> $GITHUB_OUTPUT
             echo "desc=Docs and changelog current" >> $GITHUB_OUTPUT
+            echo "target_url=" >> $GITHUB_OUTPUT
           else
             JOINED=$(printf '%s, ' "${MISSING[@]}")
             JOINED=${JOINED%, }
             echo "state=failure" >> $GITHUB_OUTPUT
             echo "desc=Missing: $JOINED - apply docs:ready" >> $GITHUB_OUTPUT
+
+            # Point the status link at a copy-paste-ready template when a
+            # .changes/*.yml entry is specifically what's missing.
+            if [[ -n "$RELEVANT_CHANGES_YML" ]]; then
+              echo "target_url=https://github.com/fivetran/dbt_package_automations/blob/main/templates/changes-template.yml" >> $GITHUB_OUTPUT
+            else
+              echo "target_url=" >> $GITHUB_OUTPUT
+            fi
           fi
 
       - name: Remove docs:ready label if anything is stale or missing
@@ -77,14 +86,17 @@ jobs:
 
       - name: Report status
         run: |
+          PAYLOAD=$(jq -n \
+            --arg state "${{ steps.check.outputs.state }}" \
+            --arg description "${{ steps.check.outputs.desc }}" \
+            --arg target_url "${{ steps.check.outputs.target_url }}" \
+            '{state: $state, context: "docs/generated", description: $description}
+              + (if $target_url != "" then {target_url: $target_url} else {} end)')
+
           RESPONSE=$(curl -s -X POST \
             -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.event.pull_request.head.sha }}" \
-            -d "{
-              \"state\": \"${{ steps.check.outputs.state }}\",
-              \"context\": \"docs/generated\",
-              \"description\": \"${{ steps.check.outputs.desc }}\"
-            }")
+            -d "$PAYLOAD")
 
           echo "Posted state: ${{ steps.check.outputs.state }}"
           echo "$RESPONSE" | jq -r '"API returned: \(.state) at \(.created_at)"'

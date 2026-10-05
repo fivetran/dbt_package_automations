@@ -45,43 +45,52 @@ inert here — they're reserved for a future docs-generation consumer of this sa
 ### Example `.changes/1.3.0.yml`
 
 ```yaml
-version: 1.3.0
-pr_number: 143
-is_breaking: true
+version: 1.3.0            # Required. Pre-releases: -a1, -a2, ... Betas: -b1, -b2, ...
+pr_number: 143             # Optional. Default PR link for this release and every contributor below.
+is_breaking: true          # Optional. Adds "(--full-refresh required after upgrading)" to the schema table heading.
+
 schema_data_changes:
   entries:
     - models:
-        - stripe__subscription_item_mrr_report
-      change_type: Changed data
-      old: Discount sourced from the `discount` table
-      new: Discount sourced from the `subscription_discount` table
-      is_breaking: false
+        - stripe__subscription_item_mrr_report   # One or more model names this row applies to
+      change_type: Changed data                  # Or "New field/model", "Removed field/model", "Materialization"
+      old: Discount sourced from the `discount` table       # Omit for additions
+      new: Discount sourced from the `subscription_discount` table  # Omit for removals
+      is_breaking: false   # Sorts this row first and tags it (Breaking) in the table
       notes: Affects discount-based MRR calculations for subscriptions with active coupons.
-      hide_from_docs: false
+      hide_from_docs: false   # Accepted but unused for CHANGELOG.md - reserved for the docs side
     - models:
         - stg_stripe__subscription_discount
       change_type: New Staging Model
       is_breaking: true
       notes: Enabled by default; disable via variable configurability.
+
 new_features:
-  - title: Subscription discount source toggle
-    description: Adds the `stripe__using_subscription_discount` variable to disable the new staging model.
+  - title: Subscription discount source toggle   # Optional bolded lead-in
+    description: Adds the `stripe__using_subscription_discount` variable to disable the new staging model.  # Required
+
 bug_fixes:
   - description: Removes `convert_values` from the `amount` calculation to prevent double conversion.
-    details:
+    details:                                       # Optional sub-bullets
       - The prior logic applied currency conversion twice when `convert_values` was enabled upstream.
+
 dependencies:
   - package: fivetran/stripe_source
     old_version: ">=0.13.0,<0.14.0"
     new_version: ">=0.14.0,<0.15.0"
-    description: Required for the new `subscription_discount` source definition.
+    description: Required for the new `subscription_discount` source definition.   # Optional
+
 under_the_hood:
   - description: Adds integration test seed files for subscription discount data.
-    hide_from_docs: true
+    hide_from_docs: true   # Accepted but unused for CHANGELOG.md - reserved for the docs side
+
 contributors:
   - name: Jane Doe
     github_handle: janedoe
     contribution: Reported the double-conversion bug.
+    # pr_number: 141        # Optional - overrides the release-level pr_number above for this person
 ```
 
-Only `version` is required — omit any section with nothing to report for this release.
+Only `version` is required — omit any section with nothing to report for this release. A blank,
+copy-paste-ready starting point lives at
+[`templates/changes-template.yml`](templates/changes-template.yml).
