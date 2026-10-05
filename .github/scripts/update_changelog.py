@@ -25,7 +25,9 @@ import yaml
 
 CHANGES_DIR = Path(".changes")
 CHANGELOG_PATH = Path("CHANGELOG.md")
-RETENTION_DAYS = 30
+# Docs are published monthly; a 30-day window risked pruning a .changes/*.yml
+# file before a busy release month's docs run ever picked it up.
+RETENTION_DAYS = 45
 
 # Standard section headings, in render order. Hardcoded here rather than
 # per-repo configurable, so every package's changelog stays consistent.
@@ -41,8 +43,22 @@ SECTION_HEADINGS = {
 VERSION_HEADER_RE = re.compile(r"^#+\s.*\bv\d+(\.\d+)*\b")
 
 
+def _version_sort_key(path: Path) -> tuple:
+    """Numeric sort key from a filename like "1.10.1.yml" -> (1, 10, 1).
+
+    Plain sorted() is lexical, so "1.10.1.yml" would sort before "1.9.0.yml".
+    Pre-release suffixes (e.g. "1.2.0-beta.1") aren't a supported filename
+    format yet - such a file sorts after all clean numeric versions rather
+    than raising, until that convention is decided.
+    """
+    try:
+        return tuple(int(part) for part in path.stem.split("."))
+    except ValueError:
+        return (float("inf"),)
+
+
 def release_yaml_files() -> list[Path]:
-    return sorted(CHANGES_DIR.glob("*.yml"))
+    return sorted(CHANGES_DIR.glob("*.yml"), key=_version_sort_key)
 
 
 def repo_info() -> tuple[str, str]:
@@ -120,7 +136,7 @@ def normalize_dependency(item) -> dict:
 
 def render_contributor_bullets(contributors: list, pr_number, repo_url: str) -> list[str]:
     """A contributor is either a bare GitHub handle, or a structured record:
-    {name, github_handle, is_fivetran, contribution, pr_number, hide_from_docs}.
+    {name, github_handle, contribution, pr_number, hide_from_docs}.
 
     A contributor's own `pr_number` (e.g. they contributed via a different PR
     than the one driving this release) overrides the release-level pr_number.
