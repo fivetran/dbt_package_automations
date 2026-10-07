@@ -97,7 +97,7 @@ jobs:
 
           RELEVANT_DOCS=$(relevant_since_last_touch 'docs/')
           RELEVANT_CHANGELOG=$(relevant_since_last_touch 'CHANGELOG.md')
-          RELEVANT_CHANGES_YML=$(relevant_since_last_touch '.changes/')
+          RELEVANT_CHANGES_YML=$(relevant_since_last_touch '.changes/*.yml')
 
           echo "BASE: $BASE"
           echo "HEAD: $HEAD"
