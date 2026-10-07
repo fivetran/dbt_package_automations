@@ -115,13 +115,22 @@ def fetch_main_changelog() -> str:
         return CHANGELOG_PATH.read_text() if CHANGELOG_PATH.exists() else "# Changelog\n"
 
 
+def _version_already_released(version: str, changelog_text: str) -> bool:
+    """Whether "v{version}" appears in changelog_text as a complete version,
+    not as a prefix of a longer one. A plain substring check would treat
+    "v1.3.0" as already released just because "v1.3.0-a1" is present.
+    """
+    pattern = re.escape(f"v{version}") + r"(?![\w.-])"
+    return re.search(pattern, changelog_text) is not None
+
+
 def discover_pending_yaml(changelog_text: str) -> Path | None:
     for path in release_yaml_files():
         entry = yaml.safe_load(path.read_text()) or {}
         version = entry.get("version")
         if not version:
             continue
-        if f"v{version}" not in changelog_text:
+        if not _version_already_released(version, changelog_text):
             return path
     return None
 

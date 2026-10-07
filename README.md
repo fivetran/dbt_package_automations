@@ -21,7 +21,8 @@ authors don't need to name it anything special or flag which one is "pending."
 
 The script resyncs `CHANGELOG.md` from `origin/main` before writing, so re-running it (relabel,
 retry, manual dispatch) is idempotent rather than stacking duplicate entries. `.changes/*.yml`
-files are kept for 45 days after being rendered, then pruned automatically.
+files are kept for 45 days after being rendered. There's no separate scheduled cleanup — pruning
+happens as part of the next invocation of this action, for any release in the package repo.
 
 ### `.changes/*.yml` field reference
 
