@@ -1,5 +1,15 @@
 # dbt Package Automations Changelog
 
+## v1.1.0 [2026-10-01]
+- [PR #40](https://github.com/fivetran/dbt_package_automations/pull/40)
+
+### Feature Update
+- Adds `update_changelog.py` and folds it into `generate-docs.yml`, so a structured `.changes/*.yml` release file in a package repo is rendered into that repo's `CHANGELOG.md` automatically when the `docs:ready` label is applied. Resyncs from `origin/main` before writing so re-runs (relabel, retry) are idempotent instead of stacking duplicate entries, and prunes `.changes/*.yml` files older than 30 days.
+
+### Under the Hood
+- Repurposes `check-docs-current.yml` to check three things independently - docs regenerated, `CHANGELOG.md` updated, and a `.changes/*.yml` entry present - and report specifically which are missing, instead of a single generic docs-staleness check.
+- Removes the standalone `update-changelog.yml` reusable workflow now that its logic runs as part of `generate-docs.yml`'s single job, avoiding a push race between two separately-triggered workflows committing to the same PR branch.
+
 ## v1.0.2 [2026-08-10]
 - [PR #39](https://github.com/fivetran/dbt_package_automations/pull/39)
 
