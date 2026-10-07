@@ -8,7 +8,7 @@ This repository includes:
 
 - **GitHub Actions workflows** (`/.github/workflows/`)
   - `auto-release.yml` – Automates GitHub release creation
-  - `check-docs-current.yml` – Checks three things on every PR push: docs regenerated, `CHANGELOG.md` updated, and a `.changes/*.yml` entry present. Reports a single `docs/generated` commit status naming specifically which of the three are missing, and removes the `docs:ready` label if any are stale
+  - `check-docs-current.yml` – When a PR is opened, drops a `.changes/TODO.yml.template` into the branch if no `.changes/*.yml` entry exists yet (skipped for fork PRs). On every subsequent push, checks three things: docs regenerated, `CHANGELOG.md` updated, and a `.changes/*.yml` entry present. Reports a single `docs/generated` commit status naming specifically which of the three are missing, and removes the `docs:ready` label if any are stale
   - `generate-docs.yml` – When the `docs:ready` label is applied, generates dbt documentation **and** runs the changelog update (see below) in one job, committing both to the PR branch in a single push. Reports a `docs/generated` failure status and removes the `docs:ready` label if either step fails
 
 ## Changelog generation
@@ -94,4 +94,6 @@ contributors:
 
 Only `version` is required — omit any section with nothing to report for this release. A blank,
 copy-paste-ready starting point lives at
-[`templates/changes-template.yml`](templates/changes-template.yml).
+[`templates/changes-template.yml`](templates/changes-template.yml), and `check-docs-current.yml`
+automatically drops a copy into new PRs as `.changes/TODO.yml.template` (the `.yml.template`
+extension is deliberate — it's never picked up as a release until renamed to `.changes/{version}.yml`).
