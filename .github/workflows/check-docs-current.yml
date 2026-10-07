@@ -9,8 +9,7 @@ permissions:
 jobs:
   scaffold-changes-template:
     # Runs once, when the PR is first opened, to drop a copy-paste-ready
-    # .changes/*.yml template into the branch. Skipped for fork PRs, since
-    # GITHUB_TOKEN/secrets.GH_TOKEN can't push to a fork's branch.
+    # .changes/*.yml template into the branch. Skipped for fork PRs.
     if: >-
       github.event.action == 'opened' &&
       github.event.pull_request.head.repo.full_name == github.repository
