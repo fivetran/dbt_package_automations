@@ -124,11 +124,9 @@ jobs:
         cp integration_tests/target/manifest.json docs/
 
     - name: Download update_changelog.py
-      # Hardcoded to the changelog POC test branch for now (see GA-1035597).
-      # Update this ref once that work lands on main.
       run: |
         curl -sSfL \
-          "https://raw.githubusercontent.com/fivetran/dbt_package_automations/refs/heads/changelog-poc/initial-test/.github/scripts/update_changelog.py" \
+          "https://raw.githubusercontent.com/fivetran/dbt_package_automations/refs/heads/main/.github/scripts/update_changelog.py" \
           -o /tmp/update_changelog.py
 
     - name: Install pyyaml
