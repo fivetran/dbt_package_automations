@@ -30,11 +30,7 @@ jobs:
             local last
             last=$(git log --format=%H "$BASE..$HEAD" -- "$path_filter" | head -1)
 
-            # Excluding "^$BASE" matters once a later commit merges the base
-            # branch into this PR branch: without it, a plain "$last..$HEAD"
-            # walks both parents of that merge and picks up base-branch-only
-            # history (already-released, already-changelogged changes) as if
-            # it were new to this PR.
+            # "^$BASE" excludes base-branch-only history pulled in by a later merge of base into this PR branch.
             local changed
             if [[ -z "$last" ]]; then
               changed=$(git log --format= --name-only "$BASE..$HEAD" | sort -u | grep -v '^$' || true)
