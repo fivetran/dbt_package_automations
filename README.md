@@ -8,7 +8,7 @@ This repository includes:
 
 - **GitHub Actions workflows** (`/.github/workflows/`)
   - `auto-release.yml` – Automates GitHub release creation
-  - `check-docs-current.yml` – Checks three things on every PR push: docs regenerated, `CHANGELOG.md` updated, and a `.changes/*.yml` entry present. Reports a single `docs/generated` commit status naming specifically which of the three are missing, and removes the `docs:ready` label if any are stale
+  - `check-docs-current.yml` – Checks two things on every PR push: docs regenerated since the last relevant change (which also covers `CHANGELOG.md`, since both are rebuilt in the same job), and a `.changes/*.yml` entry present in the PR. Reports a single `docs/generated` commit status naming specifically what's missing, and removes the `docs:ready` label if anything is
   - `generate-docs.yml` – When the `docs:ready` label is applied, generates dbt documentation **and** runs the changelog update (see below) in one job, committing both to the PR branch in a single push. Reports a `docs/generated` failure status and removes the `docs:ready` label if either step fails
 
 ## Changelog generation
