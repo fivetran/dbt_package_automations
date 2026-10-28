@@ -12,7 +12,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Determine whether docs, CHANGELOG.md, and the changelog entry are current
+      - name: Determine whether docs are current and a changelog entry is present
         id: check
         run: |
           BASE="${{ github.event.pull_request.base.sha }}"
@@ -41,23 +41,29 @@ jobs:
             echo "$changed" | grep -vE "$IRRELEVANT" || true
           }
 
+          # generate-docs.yml rebuilds docs and CHANGELOG.md in the same job, so
+          # current docs also mean CHANGELOG.md was re-rendered. .changes/ edits
+          # count as relevant here, so editing an entry forces a re-run too.
           RELEVANT_DOCS=$(relevant_since_last_touch 'docs/')
-          RELEVANT_CHANGELOG=$(relevant_since_last_touch 'CHANGELOG.md')
-          RELEVANT_CHANGES_YML=$(relevant_since_last_touch '.changes/')
+
+          # The PR only needs to include an entry somewhere, not re-touch it after every later change.
+          RELEVANT_IN_PR=$(git diff --name-only "$BASE...$HEAD" | grep -vE "$IRRELEVANT" | grep -v '^\.changes/' || true)
+          CHANGES_YML_IN_PR=$(git diff --name-only "$BASE...$HEAD" -- '.changes/*.yml')
+          MISSING_ENTRY=""
+          [[ -n "$RELEVANT_IN_PR" && -z "$CHANGES_YML_IN_PR" ]] && MISSING_ENTRY=1
 
           echo "BASE: $BASE"
           echo "HEAD: $HEAD"
           echo "--- relevant changes since docs/ last touched ---"
           echo "$RELEVANT_DOCS"
-          echo "--- relevant changes since CHANGELOG.md last touched ---"
-          echo "$RELEVANT_CHANGELOG"
-          echo "--- relevant changes since .changes/ last touched ---"
-          echo "$RELEVANT_CHANGES_YML"
+          echo "--- relevant changes in this PR ---"
+          echo "$RELEVANT_IN_PR"
+          echo "--- .changes/*.yml entries in this PR ---"
+          echo "$CHANGES_YML_IN_PR"
 
           MISSING=()
           [[ -n "$RELEVANT_DOCS" ]] && MISSING+=("docs regeneration")
-          [[ -n "$RELEVANT_CHANGELOG" ]] && MISSING+=("CHANGELOG.md update")
-          [[ -n "$RELEVANT_CHANGES_YML" ]] && MISSING+=("a .changes/*.yml entry")
+          [[ -n "$MISSING_ENTRY" ]] && MISSING+=("a .changes/*.yml entry")
 
           if [[ ${#MISSING[@]} -eq 0 ]]; then
             echo "state=success" >> $GITHUB_OUTPUT
@@ -71,7 +77,7 @@ jobs:
 
             # Point the status link at a copy-paste-ready template when a
             # .changes/*.yml entry is specifically what's missing.
-            if [[ -n "$RELEVANT_CHANGES_YML" ]]; then
+            if [[ -n "$MISSING_ENTRY" ]]; then
               echo "target_url=https://github.com/fivetran/dbt_package_automations/blob/main/templates/changes-template.yml" >> $GITHUB_OUTPUT
             else
               echo "target_url=" >> $GITHUB_OUTPUT
