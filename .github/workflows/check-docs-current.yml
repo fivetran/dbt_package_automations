@@ -61,8 +61,13 @@ jobs:
           echo "--- .changes/*.yml entries in this PR ---"
           echo "$CHANGES_YML_IN_PR"
 
+          # Same fix either way (docs:ready), but name what actually went stale.
+          STALE_CHANGES=$(echo "$RELEVANT_DOCS" | grep '^\.changes/' || true)
+          STALE_OTHER=$(echo "$RELEVANT_DOCS" | grep -v '^\.changes/' | grep -v '^$' || true)
+
           MISSING=()
-          [[ -n "$RELEVANT_DOCS" ]] && MISSING+=("docs regeneration")
+          [[ -n "$STALE_OTHER" ]] && MISSING+=("docs regeneration")
+          [[ -n "$STALE_CHANGES" ]] && MISSING+=("CHANGELOG.md regeneration")
           [[ -n "$MISSING_ENTRY" ]] && MISSING+=("a .changes/*.yml entry")
 
           if [[ ${#MISSING[@]} -eq 0 ]]; then
@@ -72,8 +77,13 @@ jobs:
           else
             JOINED=$(printf '%s, ' "${MISSING[@]}")
             JOINED=${JOINED%, }
+            if [[ -n "$MISSING_ENTRY" ]]; then
+              ACTION="add the entry, then apply docs:ready"
+            else
+              ACTION="apply docs:ready"
+            fi
             echo "state=failure" >> $GITHUB_OUTPUT
-            echo "desc=Missing: $JOINED - apply docs:ready" >> $GITHUB_OUTPUT
+            echo "desc=Missing: $JOINED - $ACTION" >> $GITHUB_OUTPUT
 
             # Point the status link at a copy-paste-ready template when a
             # .changes/*.yml entry is specifically what's missing.
