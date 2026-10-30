@@ -18,6 +18,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import sys
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -311,5 +312,28 @@ def main() -> None:
     enforce_retention()
 
 
+def write_release_notes(notes_path: str) -> None:
+    """Write the newest release's notes (its CHANGELOG entry minus the
+    version header) to notes_path and print "v{version}". Prints nothing
+    if there's no usable .changes/*.yml, so the caller can fall back.
+    """
+    # Only real version filenames; anything else (e.g. a copied template) would sort last.
+    files = [p for p in release_yaml_files() if VERSION_FILENAME_RE.match(p.stem)]
+    if not files:
+        return
+
+    entry = yaml.safe_load(files[-1].read_text()) or {}
+    version = entry.get("version")
+    if not version:
+        return
+
+    body = render_markdown(entry).split("\n", 1)[1].lstrip("\n")
+    Path(notes_path).write_text(body)
+    print(f"v{version}")
+
+
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) == 3 and sys.argv[1] == "release-notes":
+        write_release_notes(sys.argv[2])
+    else:
+        main()
