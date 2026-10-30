@@ -10,11 +10,10 @@ on:
 jobs:
   regen-docs:
     runs-on: ubuntu-latest
-    # Queue overlapping runs for the same PR (e.g. docs:ready applied twice) so
-    # the later one starts from the earlier one's push instead of failing on it.
+    # Only the latest run per PR matters; cancelled runs skip the failure steps, so the label stays.
     concurrency:
       group: generate-docs-${{ github.repository }}-${{ github.event.pull_request.number }}
-      cancel-in-progress: false
+      cancel-in-progress: true
 
     services:
       postgres:
