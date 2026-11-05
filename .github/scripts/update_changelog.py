@@ -116,12 +116,21 @@ def fetch_main_changelog() -> str:
 
 
 def _version_already_released(version: str, changelog_text: str) -> bool:
-    """Whether "v{version}" appears in changelog_text as a complete version,
-    not as a prefix of a longer one. A plain substring check would treat
-    "v1.3.0" as already released just because "v1.3.0-a1" is present.
+    """Whether "v{version}" appears on a version header line of changelog_text
+    as a complete version, not as a prefix of a longer one. A plain substring
+    check would treat "v1.3.0" as already released just because "v1.3.0-a1"
+    is present.
+
+    Only header lines are checked: body text often mentions other packages'
+    versions (e.g. "shipped in dbt_klaviyo v1.5.0"), which must not count as
+    this package's release.
     """
-    pattern = re.escape(f"v{version}") + r"(?![\w.-])"
-    return re.search(pattern, changelog_text) is not None
+    pattern = re.compile(re.escape(f"v{version}") + r"(?![\w.-])")
+    return any(
+        pattern.search(line)
+        for line in changelog_text.splitlines()
+        if VERSION_HEADER_RE.match(line)
+    )
 
 
 def discover_pending_yaml(changelog_text: str) -> Path | None:
