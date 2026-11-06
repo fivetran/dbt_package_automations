@@ -10,6 +10,10 @@ on:
 jobs:
   regen-docs:
     runs-on: ubuntu-latest
+    # Only the latest run per PR matters; cancelled runs skip the failure steps, so the label stays.
+    concurrency:
+      group: generate-docs-${{ github.repository }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
 
     services:
       postgres:
