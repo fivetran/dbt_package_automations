@@ -1,0 +1,95 @@
+# **what?**
+# For issues that have been open for awhile without activity, label them
+# as stale with a warning that they will be closed out. If anyone comments
+# (or otherwise updates the issue, e.g. changes a label) to keep the issue
+# open, the stale label is automatically removed and it stays open.
+# Otherwise, it is closed `days-before-close` days after being labeled stale.
+# Pull requests are not touched.
+
+# **why?**
+# To keep package repos in a clean state from issues that aren't relevant anymore
+
+# **when?**
+# Called from a package repo, usually on a daily schedule (and optionally
+# `workflow_dispatch` to run it manually). Example caller:
+#
+#   name: "Close stale issues"
+#   on:
+#     schedule:
+#       - cron: "30 1 * * *"
+#     workflow_dispatch:
+#
+#   permissions:
+#     issues: write
+#     pull-requests: write
+#
+#   jobs:
+#     stale:
+#       uses: fivetran/dbt_package_automations/.github/workflows/stale-bot.yml@main
+#       # Optionally override any of the inputs below, e.g.:
+#       # with:
+#       #   days-before-stale: 90
+#       #   exempt-labels: "status:in_progress,status:in_review,priority:p1"
+
+# Copied and modified from:
+# https://github.com/dbt-labs/actions/blob/0d1ad12fa839c4c179954a96040c587ee1c358b0/.github/workflows/stale-bot-matrix.yml
+# (which sets `days-before-close: -1`, i.e. never closes, and has no inputs)
+
+name: "Close stale issues"
+on:
+  workflow_call:
+    inputs:
+      days-before-stale:
+        description: "Days without activity before an issue is labeled stale"
+        type: number
+        default: 180
+      days-before-close:
+        description: "Days after being labeled stale before an issue is closed"
+        type: number
+        default: 7
+      stale-label:
+        description: "Label applied to stale issues"
+        type: string
+        default: "status:stale"
+      exempt-labels:
+        description: "Comma-separated labels; issues with any of these are never marked stale"
+        type: string
+        default: "status:in_progress,status:in_review"
+      stale-issue-message:
+        description: "Comment posted when an issue is labeled stale (default is generated from the day inputs)"
+        type: string
+        default: ""
+      close-issue-message:
+        description: "Comment posted when a stale issue is closed"
+        type: string
+        default: "Although we are closing this issue as stale, it's not gone forever. Issues can be reopened if there is renewed community interest. Just add a comment to notify the maintainers."
+      close-issue-reason:
+        description: "Reason an issue is closed with: `completed` or `not_planned`"
+        type: string
+        default: "not_planned"
+      operations-per-run:
+        description: "Max GitHub API operations per run (actions/stale default is 30, which is slow for a backlog of old issues)"
+        type: number
+        default: 200
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@5bef64f19d7facfb25b37b414482c7164d639639  # actions/stale@v9
+        with:
+          stale-issue-label: ${{ inputs.stale-label }}
+          stale-issue-message: ${{ inputs.stale-issue-message || format('This issue has been marked as Stale because it has been open for {0} days with no activity. If you would like the issue to remain open, please comment on the issue or else it will be closed in {1} days.', inputs.days-before-stale, inputs.days-before-close) }}
+          close-issue-message: ${{ inputs.close-issue-message }}
+          close-issue-reason: ${{ inputs.close-issue-reason }}
+          days-before-issue-stale: ${{ inputs.days-before-stale }}
+          days-before-issue-close: ${{ inputs.days-before-close }}
+          exempt-issue-labels: ${{ inputs.exempt-labels }}
+          # Leave pull requests alone
+          days-before-pr-stale: -1
+          days-before-pr-close: -1
+          operations-per-run: ${{ inputs.operations-per-run }}
