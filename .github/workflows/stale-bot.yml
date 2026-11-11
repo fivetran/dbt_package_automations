@@ -4,7 +4,7 @@
 # (or otherwise updates the issue, e.g. changes a label) to keep the issue
 # open, the stale label is automatically removed and it stays open.
 # Otherwise, it is closed `days-before-close` days after being labeled stale.
-# Pull requests are not touched.
+# Pull requests are handled the same way (drafts are skipped).
 
 # **why?**
 # To keep package repos in a clean state from issues that aren't relevant anymore
@@ -89,7 +89,11 @@ jobs:
           days-before-issue-stale: ${{ inputs.days-before-stale }}
           days-before-issue-close: ${{ inputs.days-before-close }}
           exempt-issue-labels: ${{ inputs.exempt-labels }}
-          # Leave pull requests alone
-          days-before-pr-stale: -1
-          days-before-pr-close: -1
+          stale-pr-label: ${{ inputs.stale-label }}
+          stale-pr-message: ${{ format('This PR has been marked as Stale because it has been open for {0} days with no activity. If you would like the PR to remain open, please comment on it or else it will be closed in {1} days.', inputs.days-before-stale, inputs.days-before-close) }}
+          close-pr-message: "Although we are closing this PR as stale, it's not gone forever. PRs can be reopened if there is renewed interest. Just add a comment to notify the maintainers."
+          days-before-pr-stale: ${{ inputs.days-before-stale }}
+          days-before-pr-close: ${{ inputs.days-before-close }}
+          exempt-pr-labels: ${{ inputs.exempt-labels }}
+          exempt-draft-pr: true
           operations-per-run: ${{ inputs.operations-per-run }}
