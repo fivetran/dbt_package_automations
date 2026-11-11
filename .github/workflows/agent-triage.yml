@@ -1,0 +1,171 @@
+name: Agent triage
+
+# First-pass merge verdict, started when someone with write access adds `agent:triage`.
+# The PR's code is never checked out or run. Claude gets no tools and returns JSON only.
+# On a new push, the agent's verdict label is removed, since it no longer applies.
+# Setup: .github/scripts/agent_triage/README.md
+
+on:
+  workflow_call:
+    inputs:
+      automations_ref:
+        description: Branch, tag, or commit of dbt_package_automations to load the script from.
+        type: string
+        default: main
+      model:
+        type: string
+        default: claude-sonnet-5-5
+    secrets:
+      PKG_REVIEW_TOKEN:
+        description: Anthropic API key
+        required: true
+      GH_TOKEN:
+        description: >-
+          Fivetran bot token, used to check permissions, comment, suggest, and label. The plan is a
+          limited credential with only Pull requests and Issues read/write and no Contents access.
+        required: true
+
+concurrency:
+  group: agent-triage-${{ github.repository }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  clear-stale-labels:
+    if: github.event.action == 'synchronize'
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Remove the verdict label after a new push
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          ISSUE: repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}
+        run: |
+          for OLD in agent%3Aready-to-go agent%3Aminor-revisions; do
+            gh api -X DELETE "$ISSUE/labels/$OLD" > /dev/null 2>&1 || true
+          done
+
+  analyze:
+    if: github.event.action == 'labeled' && github.event.label.name == 'agent:triage'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check that whoever added the label has write access
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          SENDER: ${{ github.event.sender.login }}
+        run: |
+          PERMISSION=$(gh api "repos/${{ github.repository }}/collaborators/$SENDER/permission" --jq .permission)
+          echo "$SENDER has $PERMISSION access"
+          [[ "$PERMISSION" =~ ^(admin|maintain|write)$ ]] || { echo "Only maintainers can start agent triage."; exit 1; }
+
+      - name: Check out the triage script (not the PR)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          repository: fivetran/dbt_package_automations
+          ref: ${{ inputs.automations_ref }}
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: '3.12'
+
+      # Installed in its own step, so package code never runs alongside the API key
+      - run: pip install -q anthropic==2.8.0 pydantic==2.14.3
+
+      - name: Get a verdict
+        env:
+          GH_TOKEN: ${{ github.token }}  # read-only in this job
+          ANTHROPIC_API_KEY: ${{ secrets.PKG_REVIEW_TOKEN }}
+          TRIAGE_MODEL: ${{ inputs.model }}
+        run: |
+          python .github/scripts/agent_triage/triage.py --repo "${{ github.repository }}" \
+            --pr "${{ github.event.pull_request.number }}" --sha "${{ github.event.pull_request.head.sha }}" --out-dir out
+          cat out/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: agent-triage-result
+          path: out/
+          retention-days: 7
+
+  # Fork PRs never target main directly. This job creates external/pr-<number> off main with
+  # the workflow's own token, which covers only this repo and expires when the job ends.
+  # It has no other secrets and runs no PR code. The bot token can't create branches.
+  create-branch:
+    needs: analyze
+    if: >-
+      github.event.pull_request.base.ref == github.event.repository.default_branch &&
+      github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create external/pr-<number> from the default branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          DEFAULT: ${{ github.event.repository.default_branch }}
+        run: |
+          SHA=$(gh api "repos/$REPO/git/ref/heads/$DEFAULT" --jq .object.sha)
+          gh api "repos/$REPO/git/refs" -f ref="refs/heads/external/pr-$NUMBER" -f sha="$SHA" > /dev/null 2>&1 \
+            && echo "Created external/pr-$NUMBER" || echo "external/pr-$NUMBER already exists"
+
+  post:
+    needs: [analyze, create-branch]
+    # Runs whether or not create-branch ran, but not if it failed
+    if: ${{ !cancelled() && needs.analyze.result == 'success' && needs.create-branch.result != 'failure' }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    env:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}  # limited bot token: comment, suggest, label
+      ISSUE: repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        with:
+          name: agent-triage-result
+          path: out
+
+      - name: Post the comment, suggestions, and verdict label
+        env:
+          PULL: repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # Skip if someone pushed while the agent was running
+          HEAD=$(gh api "$PULL" --jq .head.sha)
+          [[ "$HEAD" == "$(cat out/sha.txt)" ]] || { echo "PR changed during review. Add agent:triage again."; exit 0; }
+
+          # Fork PRs never target main directly: point them at the branch create-branch made.
+          # The branch name comes only from the PR number.
+          read -r BASE HEAD_REPO DEFAULT < <(gh api "$PULL" --jq '"\(.base.ref) \(.head.repo.full_name // "deleted") \(.base.repo.default_branch)"')
+          if [[ "$BASE" == "$DEFAULT" && "$HEAD_REPO" != "${{ github.repository }}" ]]; then
+            BRANCH="external/pr-$NUMBER"
+            gh api -X PATCH "$PULL" -f base="$BRANCH" > /dev/null
+            printf '\nWe pointed this PR at `%s`, a branch off `%s`, so we can finish release prep before it reaches `%s`.\n' \
+              "$BRANCH" "$DEFAULT" "$DEFAULT" >> out/comment.md
+            echo "Retargeted to $BRANCH"
+          fi
+
+          # Only update a comment the bot itself wrote
+          BOT=$(gh api user --jq .login)
+          EXISTING=$(gh api --paginate "$ISSUE/comments" \
+            --jq ".[] | select(.user.login == \"$BOT\" and (.body | startswith(\"<!-- agent-triage -->\"))) | .id" | head -1)
+          if [[ -n "$EXISTING" ]]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$EXISTING" -F body=@out/comment.md > /dev/null
+          else
+            gh api "$ISSUE/comments" -F body=@out/comment.md > /dev/null
+          fi
+
+          # One-click suggestions for minor revisions, as a single review on the reviewed commit
+          if [[ $(jq '.comments | length' out/suggestions.json) -gt 0 ]]; then
+            gh api "$PULL/reviews" --input out/suggestions.json > /dev/null && echo "Posted suggestions"
+          fi
+
+          for OLD in agent%3Aready-to-go agent%3Aminor-revisions agent%3Ahuman-review agent%3Askipped agent%3Atriage; do
+            gh api -X DELETE "$ISSUE/labels/$OLD" > /dev/null 2>&1 || true
+          done
+          LABEL=$(grep -xE 'agent:ready-to-go|agent:minor-revisions|agent:human-review|agent:skipped' out/labels.txt | head -1)
+          [[ -n "$LABEL" ]] && gh api "$ISSUE/labels" -f "labels[]=$LABEL" > /dev/null
+          echo "Posted with label: ${LABEL:-none}"
