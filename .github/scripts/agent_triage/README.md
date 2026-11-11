@@ -27,11 +27,10 @@ repos, so it holds only the verdict and Claude's raw answer, nothing sensitive.
 
 1. Make two secrets available to the repo:
    - `PKG_REVIEW_TOKEN`: the Anthropic API key.
-   - `TRIAGE_BOT_TOKEN`: a fine-grained token for the Fivetran bot, limited to the package
-     repos, with Pull requests and Issues read and write, Metadata read, and no Contents
-     access. It can comment, suggest, and label, but it cannot push or merge. The
-     `external/pr-<number>` branch is created by a separate job with the workflow's own
-     short-lived token.
+   - `GH_TOKEN`: the Fivetran bot token. It only needs Pull requests and Issues read and
+     write. The plan is to replace it with a limited credential that has no Contents access,
+     so it can't push or merge. The `external/pr-<number>` branch is created by a separate
+     job with the workflow's own short-lived token.
 2. Add `.github/workflows/agent-triage.yml`. Pin `uses:` and `automations_ref` to the same
    release tag or commit:
 
@@ -50,7 +49,7 @@ repos, so it holds only the verdict and Claude's raw answer, nothing sensitive.
          automations_ref: <tag>
        secrets:
          PKG_REVIEW_TOKEN: ${{ secrets.PKG_REVIEW_TOKEN }}
-         TRIAGE_BOT_TOKEN: ${{ secrets.TRIAGE_BOT_TOKEN }}
+         GH_TOKEN: ${{ secrets.GH_TOKEN }}
    ```
 
 ## Run it locally

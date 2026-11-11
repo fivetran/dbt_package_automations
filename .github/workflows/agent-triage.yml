@@ -19,10 +19,10 @@ on:
       PKG_REVIEW_TOKEN:
         description: Anthropic API key
         required: true
-      TRIAGE_BOT_TOKEN:
+      GH_TOKEN:
         description: >-
-          Fine-grained bot token: Pull requests and Issues read/write, Metadata read, no Contents.
-          It can comment, suggest, and label, but cannot push or merge.
+          Fivetran bot token, used to check permissions, comment, suggest, and label. The plan is a
+          limited credential with only Pull requests and Issues read/write and no Contents access.
         required: true
 
 concurrency:
@@ -37,7 +37,7 @@ jobs:
     steps:
       - name: Remove the verdict label after a new push
         env:
-          GH_TOKEN: ${{ secrets.TRIAGE_BOT_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           ISSUE: repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}
         run: |
           for OLD in agent%3Aready-to-go agent%3Aminor-revisions; do
@@ -53,7 +53,7 @@ jobs:
     steps:
       - name: Check that whoever added the label has write access
         env:
-          GH_TOKEN: ${{ secrets.TRIAGE_BOT_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
           SENDER: ${{ github.event.sender.login }}
         run: |
           PERMISSION=$(gh api "repos/${{ github.repository }}/collaborators/$SENDER/permission" --jq .permission)
@@ -120,7 +120,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions: {}
     env:
-      GH_TOKEN: ${{ secrets.TRIAGE_BOT_TOKEN }}  # limited bot token: comment, suggest, label
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}  # limited bot token: comment, suggest, label
       ISSUE: repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
