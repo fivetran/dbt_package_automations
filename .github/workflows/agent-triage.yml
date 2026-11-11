@@ -1,0 +1,125 @@
+name: Agent triage
+
+# First-pass PR review. A maintainer starts it by adding the `agent:run` label.
+#
+# Safety design:
+# - The PR's code is never checked out or run. The PR is read as text through the API.
+# - Claude gets no tools. It can only return JSON that matches a fixed schema.
+# - A script, not Claude, builds the comment and picks labels from an allowlist.
+# - Posting waits for a maintainer to approve the `agent-triage-approval` environment.
+#
+# Caller setup: see .github/scripts/agent_triage/README.md.
+
+on:
+  workflow_call:
+    inputs:
+      automations_ref:
+        description: Branch or tag of dbt_package_automations to load the triage script from.
+        type: string
+        default: main
+
+concurrency:
+  group: agent-triage-${{ github.repository }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+      SCRIPT: automations/.github/scripts/agent_triage/triage.py
+      HAS_SLACK: ${{ secrets.AGENT_TRIAGE_SLACK_WEBHOOK_URL != '' }}
+    steps:
+      # Our own script only. The PR's code is never checked out.
+      - name: Check out the triage script
+        uses: actions/checkout@v4
+        with:
+          repository: fivetran/dbt_package_automations
+          ref: ${{ inputs.automations_ref }}
+          path: automations
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install anthropic==2.8.0 pydantic==2.*
+
+      - name: Read the PR as text (read-only token)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python "$SCRIPT" fetch --repo "$REPO" --pr "$PR" --out-dir out
+
+      - name: Ask Claude for a review (no tools, JSON only)
+        env:
+          # The SDK reads ANTHROPIC_API_KEY. The repo or org secret is named PKG_REVIEW_TOKEN.
+          ANTHROPIC_API_KEY: ${{ secrets.PKG_REVIEW_TOKEN }}
+        run: python "$SCRIPT" analyze --out-dir out
+
+      - name: Build the draft comment
+        run: |
+          python "$SCRIPT" render --out-dir out
+          cat out/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Save the draft
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-triage-draft
+          path: |
+            out/comment.md
+            out/labels.txt
+            out/summary.md
+          retention-days: 14
+
+      - name: Ping Slack
+        if: env.HAS_SLACK == 'true'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.AGENT_TRIAGE_SLACK_WEBHOOK_URL }}
+        run: |
+          curl -sS -X POST -H 'Content-Type: application/json' --data @out/slack.json "$SLACK_WEBHOOK_URL"
+
+  post:
+    needs: analyze
+    runs-on: ubuntu-latest
+    # Required reviewers on this environment make the job wait for a maintainer's approval.
+    environment: agent-triage-approval
+    permissions:
+      pull-requests: write
+      issues: write
+    env:
+      REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: agent-triage-draft
+          path: out
+
+      - name: Post or update the triage comment
+        run: |
+          EXISTING=$(gh api --paginate "repos/$REPO/issues/$PR/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- agent-triage -->"))) | .id' | head -1)
+          if [[ -n "$EXISTING" ]]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$EXISTING" -F body=@out/comment.md > /dev/null
+            echo "Updated comment $EXISTING"
+          else
+            gh api "repos/$REPO/issues/$PR/comments" -F body=@out/comment.md > /dev/null
+            echo "Posted a new comment"
+          fi
+
+      - name: Update labels
+        run: |
+          # Clear labels from earlier runs, then add only allowlisted labels
+          for OLD in agent%3Aready-to-merge agent%3Aminor-updates needs-human-review agent%3Arun; do
+            gh api -X DELETE "repos/$REPO/issues/$PR/labels/$OLD" > /dev/null 2>&1 || true
+          done
+          grep -xE 'agent:ready-to-merge|agent:minor-updates|needs-human-review' out/labels.txt | while read -r LABEL; do
+            gh api "repos/$REPO/issues/$PR/labels" -f "labels[]=$LABEL" > /dev/null
+            echo "Added $LABEL"
+          done
