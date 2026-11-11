@@ -19,8 +19,10 @@ on:
       PKG_REVIEW_TOKEN:
         description: Anthropic API key
         required: true
-      GH_TOKEN:
-        description: Fivetran bot token, used to post the comment
+      TRIAGE_BOT_TOKEN:
+        description: >-
+          Fine-grained bot token: Pull requests and Issues read/write, Metadata read, no Contents.
+          It can comment, suggest, and label, but cannot push or merge.
         required: true
 
 concurrency:
@@ -35,7 +37,7 @@ jobs:
     steps:
       - name: Remove the verdict label after a new push
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.TRIAGE_BOT_TOKEN }}
           ISSUE: repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}
         run: |
           for OLD in agent%3Aready-to-go agent%3Aminor-revisions; do
@@ -51,7 +53,7 @@ jobs:
     steps:
       - name: Check that whoever added the label has write access
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.TRIAGE_BOT_TOKEN }}
           SENDER: ${{ github.event.sender.login }}
         run: |
           PERMISSION=$(gh api "repos/${{ github.repository }}/collaborators/$SENDER/permission" --jq .permission)
@@ -88,12 +90,37 @@ jobs:
           path: out/
           retention-days: 7
 
-  post:
+  # Fork PRs never target main directly. This job creates external/pr-<number> off main with
+  # the workflow's own token, which covers only this repo and expires when the job ends.
+  # It has no other secrets and runs no PR code. The bot token can't create branches.
+  create-branch:
     needs: analyze
+    if: >-
+      github.event.pull_request.base.ref == github.event.repository.default_branch &&
+      github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create external/pr-<number> from the default branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          DEFAULT: ${{ github.event.repository.default_branch }}
+        run: |
+          SHA=$(gh api "repos/$REPO/git/ref/heads/$DEFAULT" --jq .object.sha)
+          gh api "repos/$REPO/git/refs" -f ref="refs/heads/external/pr-$NUMBER" -f sha="$SHA" > /dev/null 2>&1 \
+            && echo "Created external/pr-$NUMBER" || echo "external/pr-$NUMBER already exists"
+
+  post:
+    needs: [analyze, create-branch]
+    # Runs whether or not create-branch ran, but not if it failed
+    if: ${{ !cancelled() && needs.analyze.result == 'success' && needs.create-branch.result != 'failure' }}
     runs-on: ubuntu-latest
     permissions: {}
     env:
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}  # Fivetran bot, so the comment comes from the bot
+      GH_TOKEN: ${{ secrets.TRIAGE_BOT_TOKEN }}  # limited bot token: comment, suggest, label
       ISSUE: repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
@@ -110,13 +137,11 @@ jobs:
           HEAD=$(gh api "$PULL" --jq .head.sha)
           [[ "$HEAD" == "$(cat out/sha.txt)" ]] || { echo "PR changed during review. Add agent:triage again."; exit 0; }
 
-          # Fork PRs never target main directly: point them at a new branch off main.
+          # Fork PRs never target main directly: point them at the branch create-branch made.
           # The branch name comes only from the PR number.
           read -r BASE HEAD_REPO DEFAULT < <(gh api "$PULL" --jq '"\(.base.ref) \(.head.repo.full_name // "deleted") \(.base.repo.default_branch)"')
           if [[ "$BASE" == "$DEFAULT" && "$HEAD_REPO" != "${{ github.repository }}" ]]; then
             BRANCH="external/pr-$NUMBER"
-            MAIN_SHA=$(gh api "repos/${{ github.repository }}/git/ref/heads/$DEFAULT" --jq .object.sha)
-            gh api "repos/${{ github.repository }}/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$MAIN_SHA" > /dev/null 2>&1 || true
             gh api -X PATCH "$PULL" -f base="$BRANCH" > /dev/null
             printf '\nWe pointed this PR at `%s`, a branch off `%s`, so we can finish release prep before it reaches `%s`.\n' \
               "$BRANCH" "$DEFAULT" "$DEFAULT" >> out/comment.md
