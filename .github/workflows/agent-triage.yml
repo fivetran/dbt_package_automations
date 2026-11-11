@@ -1,6 +1,6 @@
 name: Agent triage
 
-# First-pass PR review. A maintainer starts it by adding the `agent:run` label.
+# First-pass PR review. A maintainer starts it by adding the `agent:triage` label.
 #
 # Safety design:
 # - The PR's code is never checked out or run. The PR is read as text through the API.
@@ -116,7 +116,7 @@ jobs:
       - name: Update labels
         run: |
           # Clear labels from earlier runs, then add only allowlisted labels
-          for OLD in agent%3Aready-to-merge agent%3Aminor-updates needs-human-review agent%3Arun; do
+          for OLD in agent%3Aready-to-merge agent%3Aminor-updates needs-human-review agent%3Atriage; do
             gh api -X DELETE "repos/$REPO/issues/$PR/labels/$OLD" > /dev/null 2>&1 || true
           done
           grep -xE 'agent:ready-to-merge|agent:minor-updates|needs-human-review' out/labels.txt | while read -r LABEL; do

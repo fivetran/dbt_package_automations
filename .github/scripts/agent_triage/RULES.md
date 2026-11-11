@@ -1,7 +1,7 @@
 # Agent triage rules
 
 These rules drive the first-pass review that the agent runs on a pull request to a
-Fivetran dbt package. A maintainer starts each run by adding the `agent:run` label.
+Fivetran dbt package. A maintainer starts each run by adding the `agent:triage` label.
 
 The first pass answers one question: **can we merge this as is, or with a few small
 updates?** If the answer is no, the agent says why in one or two sentences and hands the
