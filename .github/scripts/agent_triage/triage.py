@@ -42,11 +42,11 @@ LABELS = {
     "minor_revisions": "agent:minor-revisions",
     "human_review": "agent:human-review",
 }
-HARD_STOP_LABEL = "agent:hard-stop"  # the script stopped it before Claude ran
+SKIPPED_LABEL = "agent:skipped"  # the script stopped it before Claude ran
 
 
 def label(pr: dict, result: dict) -> str:
-    return HARD_STOP_LABEL if pr["gate"] else LABELS[verdict(pr, result)]
+    return SKIPPED_LABEL if pr["gate"] else LABELS[verdict(pr, result)]
 
 
 class Revision(BaseModel):
@@ -284,7 +284,7 @@ def comment(pr: dict, result: dict) -> str:
         out += ["", "A Fivetran maintainer will do a final check before merging."]
     else:
         if pr["gate"]:
-            out.append("🛑 **Needs a full review.** This PR changes areas we always review by hand. "
+            out.append("🔍 **Needs a full review.** This PR changes areas we always review by hand. "
                        "Thanks for contributing! A Fivetran maintainer will review it.")
         else:
             out.append("🔍 **Needs a full review.** Thanks for contributing! A Fivetran maintainer will review this PR.")
@@ -296,7 +296,7 @@ def summary(pr: dict, result: dict) -> str:
     """Shown in the job summary, which is public on public repos. No sensitive detail."""
     v, r = verdict(pr, result), result.get("review")
     out = [f"## Agent triage: {pr['repo']}#{pr['number']} at {pr['sha'][:7]}", "",
-           f"- **Verdict:** `{'hard_stop' if pr['gate'] else v}` · label `{label(pr, result)}` "
+           f"- **Verdict:** `{'skipped' if pr['gate'] else v}` · label `{label(pr, result)}` "
            f"({len(pr['files'])} files, {pr['lines']} lines)"]
     if pr["gate"]:
         out.append("- **Claude not run:** " + "; ".join(pr["gate"]))

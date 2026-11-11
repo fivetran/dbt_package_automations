@@ -15,7 +15,7 @@ what the agent checks.
 
 ## 1. Scope gate (checked by the script, not the model)
 
-The script skips the model, labels the PR `agent:hard-stop`, and sends it to a maintainer
+The script skips the model, labels the PR `agent:skipped`, and sends it to a maintainer
 when any of these hold:
 
 - The PR changes anything in a dot folder, such as `.github/` or `.buildkite/`.

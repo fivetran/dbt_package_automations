@@ -43,7 +43,7 @@ def to_pr(case: dict, repo_paths: list) -> dict:
 def run_case(case: dict, repo_paths: list, repeat: int) -> dict:
     pr = to_pr(case, repo_paths)
     if case.get("gate"):
-        ok = bool(pr["gate"]) and triage.label(pr, {}) == triage.HARD_STOP_LABEL
+        ok = bool(pr["gate"]) and triage.label(pr, {}) == triage.SKIPPED_LABEL
         return {"id": case["id"], "impact": "gate", "expected": "skip Claude",
                 "got": ["skipped" if ok else "Claude would run"], "ok": ok, "wrong_approval": False,
                 "note": "; ".join(pr["gate"])[:90], "tokens": (0, 0)}
