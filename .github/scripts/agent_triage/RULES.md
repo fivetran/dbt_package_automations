@@ -7,8 +7,8 @@ The first pass answers one question: **can we merge this as is, or with a few sm
 updates?** If the answer is no, the agent says why in one or two sentences and hands the
 PR to a maintainer. It does not write a full review.
 
-The agent recommends. It never approves, merges, or pushes code. A maintainer approves
-every draft before it is posted to the PR.
+The agent recommends. It never approves, merges, or pushes code. Only someone with write
+access can start it, and a maintainer always makes the final merge decision.
 
 The script sends this file to the model as its instructions, so edit it here to change
 what the agent checks.
@@ -17,16 +17,17 @@ what the agent checks.
 
 The script skips the model and returns `needs_maintainer_review` when any of these hold:
 
-- More than 400 changed lines, or more than 20 changed files. Generated `docs/` files
-  do not count.
-- The PR changes `.github/`, `packages.yml`, or `integration_tests/packages.yml`.
-- The PR changes a model that is materialized as `incremental`.
+- The PR changes anything outside `models/`, `macros/`, `integration_tests/seeds/`, and
+  `README.md`, including renames out of other folders.
+- More than 400 changed lines, more than 20 changed files, or more than 150,000
+  characters of text to review.
+- A changed SQL file mentions `incremental` or `materialized`.
+- A file name has unusual characters, a file is not text, or the script cannot read the
+  full change.
+- New commits were pushed after the label was added.
 
-The script also passes these facts to the model:
-
-- The changed files with their status and line counts.
-- Whether any changed SQL touches union logic or `fivetran_utils` macros.
-- Whether any changed `.yml` file adds or changes tests.
+For other PRs, the model gets the PR title and body, each changed file's diff and full
+text, and the list of model, macro, and seed files in the base branch.
 
 ## 2. Verdict
 

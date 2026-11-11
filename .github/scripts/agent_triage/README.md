@@ -1,68 +1,56 @@
 # Agent triage (POC)
 
-An agent does a first-pass review of a PR when a maintainer adds the `agent:triage` label.
-It reads the PR as text, asks Claude for a structured review, and drafts a comment.
-A maintainer approves the draft before it is posted. See [RULES.md](RULES.md) for what
-the agent checks.
+When a maintainer adds the `agent:triage` label to a PR, an agent gives it a first-pass
+merge verdict: ready to merge, up to three small updates, or maintainer review.
+[RULES.md](RULES.md) says how it decides.
 
 ## How it works
 
-1. A maintainer adds `agent:triage` to a PR.
-2. The `analyze` job reads the PR through the GitHub API with a read-only token. It never
+1. The `analyze` job reads the PR through the GitHub API with a read-only token. It never
    checks out or runs the PR's code.
-3. The script applies the scope gate. Large or sensitive PRs skip the model and are labeled
-   `needs-human-review`.
-4. Claude reviews the PR text. It has no tools and must return JSON that matches a fixed
-   schema.
-5. The script builds the comment from a template. It strips links, HTML, and @mentions
-   from the model's text.
-6. The draft appears in the run's job summary and, if configured, in Slack.
-7. The `post` job waits for a maintainer to approve the `agent-triage-approval`
-   environment. It then posts the comment and applies labels from an allowlist.
+2. Large or sensitive PRs skip Claude and get `needs-human-review`.
+3. Claude gets the PR as text, with no tools, and must return JSON in a fixed format.
+4. The script builds the comment from a template, strips links, HTML, and @mentions, and
+   can only make Claude's verdict more cautious.
+5. The `post` job posts the comment and one verdict label as the Fivetran bot. It skips
+   posting if new commits arrived during the review.
+6. A new push removes the verdict label, since it no longer applies.
 
-The contributor sees a one-line summary and one verdict: ready to merge, a short list of
-up to three small updates, or a note that a maintainer will review it directly. Version bump
-recommendations and internal notes appear only in the job summary and Slack.
+Only someone with write access can start a run. The job summary is public on public
+repos, so it holds only the verdict and Claude's raw answer, nothing sensitive.
 
 ## Setup for a package repo
 
-1. **Secret `PKG_REVIEW_TOKEN`.** This holds the Anthropic API key. Store it as an
-   organization secret shared with the package repos, or as a repository secret for the
-   pilot. Use a dedicated key in its own Anthropic workspace with a spend limit.
-2. **Optional secret `AGENT_TRIAGE_SLACK_WEBHOOK_URL`.** A Slack incoming webhook for the
-   channel that should get the "draft ready" ping.
-3. **Environment `agent-triage-approval`.** In the repo's Settings > Environments, create
-   it and add the maintainers as required reviewers. Without required reviewers, the
-   comment posts without waiting.
-4. **Caller workflow.** Add `.github/workflows/agent-triage.yml`:
+1. Make two secrets available to the repo: `PKG_REVIEW_TOKEN` (the Anthropic API key,
+   ideally a dedicated key with a spend limit) and `GH_TOKEN` (the Fivetran bot token).
+2. Add `.github/workflows/agent-triage.yml`. Pin `uses:` and `automations_ref` to the same
+   release tag or commit:
 
    ```yaml
    on:
      pull_request_target:
-       types: [labeled]
+       types: [labeled, synchronize]
    permissions:
      contents: read
-     pull-requests: write
-     issues: write
+     pull-requests: read
    jobs:
      triage:
-       if: github.event.label.name == 'agent:triage'
-       uses: fivetran/dbt_package_automations/.github/workflows/agent-triage.yml@main
-       secrets: inherit
+       if: github.event.action == 'synchronize' || github.event.label.name == 'agent:triage'
+       uses: fivetran/dbt_package_automations/.github/workflows/agent-triage.yml@<tag>
+       with:
+         automations_ref: <tag>
+       secrets:
+         PKG_REVIEW_TOKEN: ${{ secrets.PKG_REVIEW_TOKEN }}
+         GH_TOKEN: ${{ secrets.GH_TOKEN }}
    ```
-
-5. **Actions setting.** In Settings > Actions > General, require approval for workflows
-   from outside contributors.
 
 ## Run it locally
 
-Use Python 3.10 or later.
+Needs Python 3.10 or later, `gh` signed in, and `ANTHROPIC_API_KEY` set. It posts nothing.
 
 ```bash
 pip install anthropic pydantic
-export ANTHROPIC_API_KEY=...   # never commit this
-python .github/scripts/agent_triage/triage.py local --repo fivetran/dbt_amazon_ads --pr 53 --out-dir /tmp/triage
+python .github/scripts/agent_triage/triage.py --repo fivetran/dbt_amazon_ads --pr 60 --out-dir /tmp/triage
 ```
 
-This prints the maintainer summary and writes `comment.md`, `labels.txt`, and
-`slack.json` to the output folder. It posts nothing.
+Set `TRIAGE_MODEL` to try another model.
