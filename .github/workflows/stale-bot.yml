@@ -20,6 +20,7 @@
 #     workflow_dispatch:
 #
 #   permissions:
+#     actions: write
 #     issues: write
 #     pull-requests: write
 #
@@ -73,6 +74,7 @@ on:
         default: 200
 
 permissions:
+  actions: write
   issues: write
   pull-requests: write
 
