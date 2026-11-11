@@ -82,7 +82,7 @@ jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@5bef64f19d7facfb25b37b414482c7164d639639  # actions/stale@v9
+      - uses: actions/stale@v11
         with:
           stale-issue-label: ${{ inputs.stale-label }}
           stale-issue-message: ${{ inputs.stale-issue-message || format('This issue has been marked as Stale because it has been open for {0} days with no activity. If you would like the issue to remain open, please comment on the issue or else it will be closed in {1} days.', inputs.days-before-stale, inputs.days-before-close) }}
