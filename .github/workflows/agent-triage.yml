@@ -138,9 +138,9 @@ jobs:
             gh api "$PULL/reviews" --input out/suggestions.json > /dev/null && echo "Posted suggestions"
           fi
 
-          for OLD in agent%3Aready-to-go agent%3Aminor-revisions agent%3Ahuman-review agent%3Atriage; do
+          for OLD in agent%3Aready-to-go agent%3Aminor-revisions agent%3Ahuman-review agent%3Ahard-stop agent%3Atriage; do
             gh api -X DELETE "$ISSUE/labels/$OLD" > /dev/null 2>&1 || true
           done
-          LABEL=$(grep -xE 'agent:ready-to-go|agent:minor-revisions|agent:human-review' out/labels.txt | head -1)
+          LABEL=$(grep -xE 'agent:ready-to-go|agent:minor-revisions|agent:human-review|agent:hard-stop' out/labels.txt | head -1)
           [[ -n "$LABEL" ]] && gh api "$ISSUE/labels" -f "labels[]=$LABEL" > /dev/null
           echo "Posted with label: ${LABEL:-none}"

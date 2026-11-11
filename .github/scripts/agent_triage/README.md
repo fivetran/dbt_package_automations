@@ -8,7 +8,8 @@ verdict: ready to go, minor revisions (posted as one-click suggestions where pos
 
 1. The `analyze` job reads the PR through the GitHub API with a read-only token. It never
    checks out or runs the PR's code.
-2. Large or sensitive PRs skip Claude and get `agent:human-review`.
+2. Large or sensitive PRs skip Claude and get `agent:hard-stop`. When Claude reviews a PR
+   and recommends a person look at it, the label is `agent:human-review` instead.
 3. Claude gets the PR as text, with no tools, and must return JSON in a fixed format.
 4. The script builds the comment from a template, strips links, HTML, and @mentions, and
    can only make Claude's verdict more cautious.
