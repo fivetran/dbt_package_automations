@@ -38,7 +38,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           ISSUE: repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}
         run: |
-          for OLD in agent%3Aready-to-merge agent%3Aminor-updates; do
+          for OLD in agent%3Aready-to-go agent%3Aminor-revisions; do
             gh api -X DELETE "$ISSUE/labels/$OLD" > /dev/null 2>&1 || true
           done
 
@@ -101,11 +101,27 @@ jobs:
           name: agent-triage-result
           path: out
 
-      - name: Post the comment and verdict label
+      - name: Post the comment, suggestions, and verdict label
+        env:
+          PULL: repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}
+          NUMBER: ${{ github.event.pull_request.number }}
         run: |
           # Skip if someone pushed while the agent was running
-          HEAD=$(gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" --jq .head.sha)
+          HEAD=$(gh api "$PULL" --jq .head.sha)
           [[ "$HEAD" == "$(cat out/sha.txt)" ]] || { echo "PR changed during review. Add agent:triage again."; exit 0; }
+
+          # Fork PRs never target main directly: point them at a new branch off main.
+          # The branch name comes only from the PR number.
+          read -r BASE HEAD_REPO DEFAULT < <(gh api "$PULL" --jq '"\(.base.ref) \(.head.repo.full_name // "deleted") \(.base.repo.default_branch)"')
+          if [[ "$BASE" == "$DEFAULT" && "$HEAD_REPO" != "${{ github.repository }}" ]]; then
+            BRANCH="external/pr-$NUMBER"
+            MAIN_SHA=$(gh api "repos/${{ github.repository }}/git/ref/heads/$DEFAULT" --jq .object.sha)
+            gh api "repos/${{ github.repository }}/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$MAIN_SHA" > /dev/null 2>&1 || true
+            gh api -X PATCH "$PULL" -f base="$BRANCH" > /dev/null
+            printf '\nWe pointed this PR at `%s`, a branch off `%s`, so we can finish release prep before it reaches `%s`.\n' \
+              "$BRANCH" "$DEFAULT" "$DEFAULT" >> out/comment.md
+            echo "Retargeted to $BRANCH"
+          fi
 
           # Only update a comment the bot itself wrote
           BOT=$(gh api user --jq .login)
@@ -117,9 +133,14 @@ jobs:
             gh api "$ISSUE/comments" -F body=@out/comment.md > /dev/null
           fi
 
-          for OLD in agent%3Aready-to-merge agent%3Aminor-updates needs-human-review agent%3Atriage; do
+          # One-click suggestions for minor revisions, as a single review on the reviewed commit
+          if [[ $(jq '.comments | length' out/suggestions.json) -gt 0 ]]; then
+            gh api "$PULL/reviews" --input out/suggestions.json > /dev/null && echo "Posted suggestions"
+          fi
+
+          for OLD in agent%3Aready-to-go agent%3Aminor-revisions agent%3Ahuman-review agent%3Atriage; do
             gh api -X DELETE "$ISSUE/labels/$OLD" > /dev/null 2>&1 || true
           done
-          LABEL=$(grep -xE 'agent:ready-to-merge|agent:minor-updates|needs-human-review' out/labels.txt | head -1)
+          LABEL=$(grep -xE 'agent:ready-to-go|agent:minor-revisions|agent:human-review' out/labels.txt | head -1)
           [[ -n "$LABEL" ]] && gh api "$ISSUE/labels" -f "labels[]=$LABEL" > /dev/null
           echo "Posted with label: ${LABEL:-none}"
