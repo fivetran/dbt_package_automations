@@ -4,7 +4,7 @@
 # https://github.com/fivetran/dbt_package_automations/blob/main/README.md
 
 version: 0.0.0  # required. Pre-releases: -a1, -a2, ... Betas: -b1, -b2, ...
-pr_number: 0  # optional. Default PR link for this release and every contributor below.
+pr_number: 0  # optional. Default PR link for this release and every contributor below. A list (e.g. [36, 37]) links every PR in a combined release.
 is_breaking: false  # optional. Adds "(--full-refresh required after upgrading)" to the schema table heading.
 
 schema_data_changes:
