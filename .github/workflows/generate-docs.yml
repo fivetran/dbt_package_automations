@@ -126,7 +126,7 @@ jobs:
     - name: Download update_changelog.py
       run: |
         curl -sSfL \
-          "https://raw.githubusercontent.com/fivetran/dbt_package_automations/refs/heads/feature/rerender-updated-current-release/.github/scripts/update_changelog.py" \
+          "https://raw.githubusercontent.com/fivetran/dbt_package_automations/refs/heads/main/.github/scripts/update_changelog.py" \
           -o /tmp/update_changelog.py
 
     - name: Install pyyaml
