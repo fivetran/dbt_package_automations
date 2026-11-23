@@ -96,7 +96,26 @@ jobs:
 
       - name: Remove docs:ready label if anything is stale or missing
         if: steps.check.outputs.state == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
+          # A label applied after this check was triggered already started a docs
+          # run for this commit, so leave it - generate-docs.yml removes it if that
+          # run fails. A re-run is measured from when the re-run started.
+          CHECK_STARTED=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --jq 'if .run_attempt > 1 then .run_started_at else .created_at end' || true)
+          LABELED_AT=$(gh api --paginate "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/timeline" \
+            --jq '.[] | select(.event == "labeled" and .label.name == "docs:ready") | .created_at' | tail -1 || true)
+
+          echo "Check started: $CHECK_STARTED"
+          echo "docs:ready last applied: ${LABELED_AT:-never}"
+
+          # ISO 8601 UTC timestamps compare correctly as strings
+          if [[ -n "$CHECK_STARTED" && -n "$LABELED_AT" && "$LABELED_AT" > "$CHECK_STARTED" ]]; then
+            echo "docs:ready was applied after this check started - leaving it for the docs run"
+            exit 0
+          fi
+
           curl -s -o /dev/null -X DELETE \
             -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels/docs:ready"
