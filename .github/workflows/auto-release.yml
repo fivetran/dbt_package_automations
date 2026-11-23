@@ -9,11 +9,36 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Extract new version from changelog
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Download update_changelog.py
+        run: |
+          curl -sSfL \
+            "https://raw.githubusercontent.com/fivetran/dbt_package_automations/refs/heads/main/.github/scripts/update_changelog.py" \
+            -o /tmp/update_changelog.py
+
+      - name: Install pyyaml
+        run: pip install pyyaml
+
+      - name: Determine new version and release notes
         id: new_version
         run: |
-          # -oP prints only the matched text; tr strips trailing whitespace/newline from the match
-          VERSION=$(grep -oP 'v[0-9]+.*' CHANGELOG.md | head -1 | tr -d '[:space:]')
+          # Prefer the newest .changes/*.yml: exact version, and notes rendered
+          # by the same code that wrote the CHANGELOG.md entry.
+          VERSION=$(python /tmp/update_changelog.py release-notes extracted_notes.txt)
+
+          if [[ -n "$VERSION" ]]; then
+            echo "source=changes" >> $GITHUB_OUTPUT
+          else
+            # Fallback for repos without .changes/: first version string in CHANGELOG.md.
+            # -oP prints only the matched text; tr strips trailing whitespace/newline from the match
+            VERSION=$(grep -oP 'v[0-9]+.*' CHANGELOG.md | head -1 | tr -d '[:space:]')
+            echo "source=changelog" >> $GITHUB_OUTPUT
+          fi
+
           echo "Extracted version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -70,6 +95,7 @@ jobs:
 
       - name: Extract release notes from changelog
         id: extract_notes
+        if: steps.new_version.outputs.source == 'changelog'
         run: |
           # \$ passes a literal $ (end-of-line anchor) to awk, so v1.0.0 doesn't match v1.0.0-b1
           START_LINE=$(awk "/^# .*${{ steps.new_version.outputs.version }}\$/{print NR+1; exit}" CHANGELOG.md)
