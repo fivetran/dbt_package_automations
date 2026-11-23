@@ -22,7 +22,13 @@ authors don't need to name it anything special or flag which one is "pending."
 
 The script resyncs `CHANGELOG.md` from `origin/main` before writing, so re-running it (relabel,
 retry, manual dispatch) is idempotent rather than stacking duplicate entries. `.changes/*.yml`
-files are kept for 45 days after being rendered. There's no separate scheduled cleanup — pruning
+files are kept for 45 days after being rendered.
+
+A release can span several PRs merged to `main` before it ships. When a later PR edits the
+`.changes/*.yml` file for a version that is already the top entry in `main`'s `CHANGELOG.md`,
+that top entry is re-rendered from the updated file instead of being skipped. The comparison
+ignores the stamped `date`. Only the topmost release is rewritten, and only when `main` also has
+a copy of its `.changes` file, so older and hand-written entries are never touched. There's no separate scheduled cleanup — pruning
 happens as part of the next invocation of this action, for any release in the package repo.
 
 ### `.changes/*.yml` field reference
@@ -30,7 +36,7 @@ happens as part of the next invocation of this action, for any release in the pa
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | `version` | string | Yes | e.g. `1.3.2`. Determines the filename convention (`.changes/1.3.2.yml`) and is used to detect whether this release is already in `CHANGELOG.md`. Pre-releases use `-a1`, `-a2`, ... and betas use `-b1`, `-b2`, ... (e.g. `1.3.0-a1`, `1.3.0-b2`); these sort before that version's final release, in that order. |
-| `pr_number` | integer | No | Renders the `[PR #N](url) includes the following updates:` line, and is the default PR link for every contributor unless they set their own. |
+| `pr_number` | integer or list | No | Renders the `[PR #N](url) includes the following updates:` line, and is the default PR link for every contributor unless they set their own. For a release that combines several PRs, use a list (e.g. `[36, 37]`) to render `[PR #36](url) and [PR #37](url) include the following updates:`. Contributors default to the first PR listed. |
 | `is_breaking` | boolean | No | Appends `(--full-refresh required after upgrading)` to the Schema/Data Change heading. |
 | `date` | string | No — set automatically | Stamped onto the file by the pipeline the first time it runs. Don't set this yourself. |
 | `schema_data_changes.entries` | list | No | Each entry: `models` (list of model name strings), `change_type`, `old`, `new`, `notes`, `is_breaking` (per-entry — controls whether that row is sorted first and tagged `(Breaking)`). Renders as a summary table. |

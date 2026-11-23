@@ -12,6 +12,10 @@ Convention:
   skips a release whose version header is already present there. This
   keeps re-runs (relabel, retry, manual dispatch) idempotent instead of
   stacking duplicate entries on top of a stale branch copy.
+- A release can span several PRs merged to main before it ships. If the
+  newest .changes/*.yml is already the top release in main's CHANGELOG.md
+  but its contents changed on this branch, that top entry is re-rendered
+  in place rather than skipped. Older releases are never rewritten.
 """
 from __future__ import annotations
 
@@ -194,15 +198,38 @@ def render_contributor_bullets(contributors: list, pr_number, repo_url: str) -> 
     return lines
 
 
+def pr_numbers(value) -> list:
+    """`pr_number` is either a single PR number or a list of them (a release
+    combining several PRs). Returns a list, empty when unset."""
+    if value is None or value == "":
+        return []
+    if isinstance(value, (list, tuple)):
+        return [v for v in value if v not in (None, "")]
+    return [value]
+
+
+def render_pr_line(numbers: list, repo_url: str) -> str:
+    links = [f"[PR #{n}]({repo_url}/pull/{n})" for n in numbers]
+    if len(links) == 1:
+        joined, verb = links[0], "includes"
+    elif len(links) == 2:
+        joined, verb = f"{links[0]} and {links[1]}", "include"
+    else:
+        joined, verb = ", ".join(links[:-1]) + f", and {links[-1]}", "include"
+    return f"{joined} {verb} the following updates:"
+
+
 def render_markdown(entry: dict) -> str:
     version = entry.get("version", "0.0.0")
-    pr_number = entry.get("pr_number")
+    numbers = pr_numbers(entry.get("pr_number"))
+    # Contributors without their own pr_number default to the first listed PR.
+    pr_number = numbers[0] if numbers else None
     headings = SECTION_HEADINGS
     package, repo_url = repo_info()
 
     lines = [f"# {package} v{version}", ""]
-    if pr_number:
-        lines.append(f"[PR #{pr_number}]({repo_url}/pull/{pr_number}) includes the following updates:")
+    if numbers:
+        lines.append(render_pr_line(numbers, repo_url))
         lines.append("")
 
     schema_entries = (entry.get("schema_data_changes") or {}).get("entries") or []
@@ -264,6 +291,82 @@ def render_markdown(entry: dict) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def fetch_main_yaml(path: Path) -> dict | None:
+    """The given .changes file as it is on origin/main, or None if it isn't there."""
+    try:
+        result = subprocess.run(
+            ["git", "show", f"origin/main:{path.as_posix()}"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except subprocess.CalledProcessError:
+        return None
+    return yaml.safe_load(result.stdout) or {}
+
+
+def _without_date(entry: dict) -> dict:
+    # `date` is stamped by this script, so it isn't an author change.
+    return {key: value for key, value in entry.items() if key != "date"}
+
+
+def _top_release_header(changelog_text: str) -> str | None:
+    return next(
+        (line for line in changelog_text.splitlines() if VERSION_HEADER_RE.match(line)),
+        None,
+    )
+
+
+def find_updated_current_yaml(changelog_text: str) -> Path | None:
+    """The newest .changes/*.yml, when its version is already the top release
+    in main's CHANGELOG.md but its contents differ from main's copy of the file.
+
+    This covers a release that spans several PRs: the first PR to merge renders
+    the entry, and a later PR adds to the same .changes file. Only the topmost
+    release is ever re-rendered. A version with no .changes file on main (a
+    hand-written entry from before this convention) is left alone.
+    """
+    files = release_yaml_files()
+    if not files:
+        return None
+
+    path = files[-1]
+    entry = yaml.safe_load(path.read_text()) or {}
+    version = entry.get("version")
+    if not version:
+        return None
+
+    top_header = _top_release_header(changelog_text)
+    if top_header is None or not _version_already_released(version, top_header):
+        return None
+
+    main_entry = fetch_main_yaml(path)
+    if main_entry is None:
+        return None
+
+    if _without_date(main_entry) == _without_date(entry):
+        return None
+    return path
+
+
+def replace_top_release(rendered: str) -> None:
+    """Swap the topmost release block of CHANGELOG.md for `rendered`. The block
+    runs from the first release header up to the next top-level release header."""
+    lines = CHANGELOG_PATH.read_text().splitlines(keepends=True)
+    headers = [i for i, line in enumerate(lines) if VERSION_HEADER_RE.match(line)]
+    if not headers:
+        prepend_to_changelog(rendered)
+        return
+
+    start = headers[0]
+    # Only a top-level "# " header ends the block, so a sub-heading that
+    # happens to mention a version doesn't cut it short.
+    later = [i for i in headers[1:] if lines[i].startswith("# ")]
+    end = later[0] if later else len(lines)
+
+    CHANGELOG_PATH.write_text("".join(lines[:start] + [rendered, "\n"] + lines[end:]))
+
+
 def prepend_to_changelog(rendered: str) -> None:
     existing = CHANGELOG_PATH.read_text() if CHANGELOG_PATH.exists() else ""
     lines = existing.splitlines(keepends=True)
@@ -306,7 +409,15 @@ def main() -> None:
 
     yaml_path = discover_pending_yaml(changelog_text)
     if yaml_path is None:
-        print("Nothing to add — every .changes/*.yml version is already in CHANGELOG.md.")
+        updated_path = find_updated_current_yaml(changelog_text)
+        if updated_path is None:
+            print("Nothing to add — every .changes/*.yml version is already in CHANGELOG.md.")
+            enforce_retention()
+            return
+
+        entry = yaml.safe_load(updated_path.read_text()) or {}
+        replace_top_release(render_markdown(entry))
+        print(f"Re-rendered v{entry['version']}: {updated_path} changed since origin/main.")
         enforce_retention()
         return
 
